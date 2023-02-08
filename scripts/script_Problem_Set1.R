@@ -58,4 +58,11 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
       data<-rbind.data.frame(data,tablas)
   }
   
+  # Conocer la ruta del directorio de trabajo
+  getwd()
   
+  # Elegir el directorio 
+  setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
+  
+  #Guardar data
+  write.table(data, "db_geih2018.txt", sep = "\t", quote = F, row.names = F)
