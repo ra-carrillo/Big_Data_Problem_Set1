@@ -44,7 +44,7 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
     html_table()%>%
     as.data.frame()
   
-  # Vamos hacer un loop
+  # Vamos hacer un loop que replique el paso anterior para las 10 pag
   
   url<-"https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_"
   data<-data.frame()
@@ -58,44 +58,4 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
       data<-rbind.data.frame(data,tablas)
   }
   
-  
-  geih2018_pag1_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_1.html")%>%
-    html_table()%>%
-    as.data.frame()
-  
-  geih2018_pag2_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_2.html")%>%
-    html_table()%>%
-    as.data.frame()
-  
-  geih2018_pag3_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_3.html")%>%
-    html_table()%>%
-    as.data.frame()
-  
-  geih2018_pag4_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_4.html")%>%
-    html_table()%>%
-    as.data.frame()
-  
-  geih2018_pag5_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_5.html")%>%
-    html_table()%>%
-    as.data.frame()
-  
-  geih2018_pag6_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_6.html")%>%
-    html_table()%>%
-    as.data.frame()
-  
-  geih2018_pag7_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_7.html")%>%
-    html_table()%>%
-    as.data.frame() 
-  
-  geih2018_pag8_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_8.html")%>%
-    html_table()%>%
-    as.data.frame()  
-  
-  geih2018_pag9_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_9.html")%>%
-    html_table()%>%
-    as.data.frame() 
-  
-  geih2018_pag10_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_10.html")%>%
-    html_table()%>%
-    as.data.frame() 
   
