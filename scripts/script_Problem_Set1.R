@@ -58,6 +58,9 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
       data<-rbind.data.frame(data,tablas)
   }
   
+  # Eliminar primera columna de la data
+  db<-data[,-1]
+  
   # Conocer la ruta del directorio de trabajo
   getwd()
   
@@ -65,4 +68,49 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
   setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
   
   #Guardar data
-  write.table(data, "db_geih2018.txt", sep = "\t", quote = F, row.names = F)
+  write.table(db, "db_geih2018.txt", sep = "\t", quote = F, row.names = F)
+  
+  
+#---Limpieza de la base de datos 
+  
+  # Aqui vamos a visualizar una parte de la base de datos
+  db
+  
+  # Ahora vamos a conocer la dimension de la base de datos
+  dim(db)
+  
+  # Podemos ver que tenemos una matriz de 32177 (filas) x 177 (columnas), es decir,
+  # tenemos 32.177observaciones y 177 variables
+  
+  # Ahora vamos a visualizar una parte tanto de las primeras como de las últimas 
+  # filas de la base de datos
+  
+  #Primeras filas
+  head(db)
+  
+  #Últimas filas
+  tail(db)
+  
+  #Vamos a explorar el tipo de variable de la base de datos
+  glimpse(db)
+  
+  #Vamos a mirar si hay valores perdidos
+  is.na(db_geih2018)
+  
+  #Queremos conocer cuantos valores perdidos hay 
+  sum(is.na(db))
+  # En nuestra base de datos hay 3.421.720
+  
+  # Vamos a seleccionar las variables de interes 
+  geih18<-db %>%
+      select(y_salary_m_hu,age,sex)
+  
+  #Valores perdido en variables especificas 
+  sum(is.na(geih18$y_salary_m_hu))
+  
+  glimpse(geih18)
+  
+# Perfil Edad-Salario
+  summary(geih18)
+  
+  
