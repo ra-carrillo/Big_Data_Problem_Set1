@@ -39,28 +39,28 @@
          rvest, # web-scraping
          stargazer,)
 
-#---Paso 1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping
+#---1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping
   
   # *Nota: Aqui vamos a realizar el codigo para hacer web-scraping para una sola pag, 
   # posteriormente haremos un loop para el caso especifico del problem set que hay 
   # que extraer los datos de varias paginas 
   
   
-  # Aqui vamos a leer el html de la página web donde estan los datos
+  ## leer el html de la página web donde estan los datos
   data1_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_1.html")
   
-  # Ver la clase de objeto
+  ## Ver la clase de objeto
   class(data1_html)
   View(data1_html)
 
-  #Extraer tablas
+  ## Extraer tablas
   data1_html%>%
   html_table()
   
-  # Mostrar el número de tablas extraidas
+  ##  Mostrar el número de tablas extraidas
   length(data1_html)
   
-  # Guardarla como data.frame
+  ##  Guardarla como data.frame
   data1<-data1_html%>%
     html_table()%>%
     as.data.frame()
@@ -71,7 +71,7 @@
   url<-"https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_"
   data<-data.frame()
   
-  #Loop
+  ## Loop
   for (i in 1:10){
     url_i<-paste0(url,i,".html")
     tablas<-url_i%>%
@@ -80,25 +80,25 @@
     data<-rbind.data.frame(data,tablas)
   }
   
-  # Eliminar primera columna de la data
+  ##  Eliminar primera columna de la data
   data<-data[,-1]
   
-  # Conocer la ruta del directorio de trabajo
+  ## Conocer la ruta del directorio de trabajo
   getwd()
   
-  # Elegir el directorio 
+  ## Elegir el directorio 
   setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
   
-  #Guardar data
+  ## Guardar data
   write.table(data, "db_geih2018.txt", sep = "\t", quote = F, row.names = F)
   
   
-#---Limpieza de la base de datos 
+#--- 2. Limpieza de la base de datos
   
-  # Visualización de una parte de la base de datos
+  ## Visualización de una parte de la base de datos
   data
   
-  # Dimensión de la base de datos
+  ## Dimensión de la base de datos
   dim(data)
   
   # Podemos ver que tenemos una matriz de 32177 (filas) x 177 (columnas), es decir,
@@ -107,63 +107,55 @@
   # Ahora vamos a visualizar una parte tanto de las primeras como de las últimas 
   # filas de la base de datos
   
-  #Primeras filas
+  ## Primeras filas
   head(data)
   
-  #Últimas filas
+  ## Últimas filas
   tail(data)
   
-  #Vamos a explorar el tipo de variable de la base de datos
+  ## Explorar el tipo de variable de la base de datos
   glimpse(data)
   
-  #Vamos a mirar si hay valores perdidos
+  ## Inspeccionar valores perdidos de la base de datos
   is.na(data)
   
-  #Queremos conocer cuantos valores perdidos hay 
+  ## Cuantificar los valores perdidos de la base de datos
   sum(is.na(data))
   # En nuestra base de datos hay 3.421.720
   
-  # Vamos a seleccionar las variables de interes 
-  geih18<-data %>%
-      select(y_salary_m_hu,age,sex)
-  
-  #Valores perdido en variables especificas 
-  sum(is.na(geih18$y_salary_m_hu))
-  
-  glimpse(geih18)
-  
-
-  #--- 2. Limpieza de la base de datos
-  
   ## Filtrar la base con ocupados mayores a 18 años
-  geih1 <- geih18 %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+  geih2018<- data %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+  
   ## Renombrar variables 
-  geih1<-geih1 %>% rename(inglab=p6500)
-  # Datos faltantes en la variable inglab
-  sum(is.na(geih1$inglab))
-  ## Imputación de valores faltantes, los datos faltantes de la variable inglab se reemplazan por los de ingresos total (ingtot)
-  geih1 <- geih1 %>% 
+  geih2018<-geih2018 %>% rename(inglab=p6500)
+  
+  ## Datos faltantes en la variable inglab
+  sum(is.na(geih2018$inglab)) 
+  
+  ## Imputación de valores faltantes, los datos faltantes de la variable inglab 
+  #  se reemplazan por los de ingresos total (ingtot)
+  geih2018<- geih2018 %>% 
     mutate(inglab = case_when(
       !is.na(ingtot) ~ ingtot,
       TRUE ~ inglab
     ))
+  
   ## Crear la variable w, salario por hora, expresada como cifra entera en miles
-  geih1<-geih1 %>% mutate(w=inglab %/%(hoursWorkUsual*4))
-  sum(is.na(geih1$w))
+  geih2018<-geih2018 %>% mutate(w=inglab %/%(hoursWorkUsual*4))
+  sum(is.na(geih2018$w))
+  
   ##Seleccionar las variables con las que se trabajará
-  geih2 <- geih1 %>% select(directorio, secuencia_p, orden, clase, estrato1, age, w, ingtot, maxEducLevel, ocu, sex)
-  str(geih2)
+  db_geih2018 <- geih2018 %>% select(directorio, secuencia_p, orden, clase, estrato1, age, w,inglab, ingtot, maxEducLevel, ocu, sex)
+  str(db_geih2018)
+  
   ## Convertir variables texto a factor
   y <- c("estrato1", "sex", "maxEducLevel")
-  geih2[y] <- lapply(geih2[y], factor)
+  db_geih2018[y] <- lapply(db_geih2018[y], factor)
   
-<<<<<<< HEAD
-  
- 
-=======
   #---3. Estadística descriptiva
+    
   ## Creación de una variables categórica para rangos de edad
-  geih2= geih2 %>% mutate(
+  db_geih2018= db_geih2018 %>% mutate(
     cat_age = case_when(
       age <= 30~ '18-30',
       age > 30 & age <= 50 ~ '30-50',
@@ -174,14 +166,16 @@
   Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
                     factor(maxEducLevel) + hoursWorkUsual + inglab + w
                   | cat_age, 
-                  data=geih2, overall="Total")
+                  data=db_geih2018, overall="Total")
   
   
-  #---4. Regresión 1_Age-wage profile
-  geih2$age2 <- geih2$age*geih2$age
+  #---4. Regresión1: Profile Age-Wage
+  
+  db_geih2018$age2 <- geih2$age*geih2$age
   reg1 <- lm(w ~ age + age2, data = geih2)
   summary(reg1)
   stargazer(reg1,type="text")
+  
   #Bootstrap
   sample_coef_intercept <- NULL
   sample_coef_x1 <- NULL
@@ -219,8 +213,7 @@
       bootstrap = means.boots,
       erstdBoots = erstd.boots),4), 
     "simple", caption = "Coefficients in different models")
->>>>>>> e9fb9cd43af031e07e8673d31bae2087d3d1ba02
-  
+
   # Intervalos de confianza
   confint(reg1)
   a <-
