@@ -19,10 +19,12 @@ library(pacman)
 
 ## llamar la librería pacman: contiene la función p_load()
 require(pacman)
+require(dplyr)
 
 ## El comadno "p_load" permite instalar/cargar las librerías que se enlistan:
 p_load(tidyverse, # contiene las librerías ggplot, dplyr...
-       rvest) # web-scraping
+       rvest, # web-scraping
+       stargazer)
 
 #---Paso 1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping
   # Aqui vamos a leer el html de la página web donde estan los datos
@@ -110,7 +112,15 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
   
   glimpse(geih18)
   
-# Perfil Edad-Salario
+  # Perfil Edad-Salario
   summary(geih18)
   
+  # Vamos a crear la variable de edad al cuadrado
+  mutate(geih18,
+         age2=age^age)
   
+  # Estimación del modelo
+  model1<-lm(y_salary_m_hu~age,geih18)
+  stargazer(mod1,type="text")
+  
+
