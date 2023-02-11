@@ -15,7 +15,13 @@
 #               utilizando web-scraping, la limpieza de la base de datos , el 
 #               analisis estadístico y las estimaciones de regresión del taller 1
 #-------------------------------------------------------------------------------
+# [Notas]: 
+#   
+# * Todos los datos iniciales se almacenan en /data
+# * Todos los códigos se almacenan en / scripts
+# * Todas las figuras ytablas se envían a /view
 
+# --------------------------------------------------------------------------------
 
 #---Configuración inicial
 
