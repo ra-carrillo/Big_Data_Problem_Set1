@@ -168,11 +168,13 @@
                   | cat_age, 
                   data=db_geih2018, overall="Total")
   
+  # Obtener el código de latex para la tabla 1
+  print(xtable(Tabla1), include.rownames = FALSE)
   
   #---4. Regresión1: Profile Age-Wage
   
-  db_geih2018$age2 <- geih2$age*geih2$age
-  reg1 <- lm(w ~ age + age2, data = geih2)
+  db_geih2018$age2 <- db_geih2018$age*db_geih2018$age
+  reg1 <- lm(w ~ age + age2, data = db_geih2018)
   summary(reg1)
   stargazer(reg1,type="text")
   
@@ -183,7 +185,7 @@
   sample_coef_x2 <- NULL
   sample_erstd_x2 <- NULL
   for (i in 1:1000) {
-    sample_d = geih2[sample(1:nrow(geih2), 0.3*nrow(geih2), replace = TRUE), ]
+    sample_d = db_geih2018[sample(1:nrow(db_geih2018), 0.3*nrow(db_geih2018), replace = TRUE), ]
     reg_boots <- lm(w ~ age + age2, data = sample_d)
     sample_coef_intercept <-
       c(sample_coef_intercept, reg_boots$coefficients[1])
@@ -203,6 +205,7 @@
   
   coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
                  sample_coef_x2, sample_erstd_x2)
+  
   ## Combinación de los resultados en una tabla 
   means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
                   mean(sample_coef_x2))
@@ -215,6 +218,7 @@
     "simple", caption = "Coefficients in different models")
 
   # Intervalos de confianza
+  
   confint(reg1)
   a <-
     cbind(
@@ -233,8 +237,8 @@
   colnames(d) <- c("2.5 %", "97.5 %",
                    "2.5 %", "97.5 %")
   
-  #---5. Regresión 2_The gender earnings GAP
-  reg2 <- lm(w ~ sex, data = geih2)
+  #---5. Regresión2: The gender earnings GAP
+  reg2 <- lm(w ~ sex, data = db_geih2018)
   summary(reg2)
   stargazer(reg2,type="text")
   
