@@ -1,15 +1,20 @@
-#---
-# Titulo: "Big Data y Machine Learning"
+#-------------------------------------------------------------------------------
+# Titulo: "Prediciendo el ingreso
 # Subtitulo: Problem Set 1
+# Curso: "Big Data y Machine Learning"
+#-------------------------------------------------------------------------------
 # Autores:
+          # Andres Carrillo
           # Diana Higuera
-          # Juan Sebastian Vallejo
-          # Riky Andres Carrillo Cadena - 202027540
+          # Sebastian Vallejo
           # Lizbeth Hernandez
-# Fecha: '2023-02-12'
-# output:
-# html_document: default
-#---
+
+# Crado: 2023-02-08
+# Última modificación: 2023-02-12
+# # Descripción:Este código contiene información acerca de la obtención de los datos 
+#               utilizando web-scraping, la limpieza de la base de datos , el 
+#               analisis estadístico y las estimaciones de regresión del taller 1
+#-------------------------------------------------------------------------------
 
 
 #---Configuración inicial
