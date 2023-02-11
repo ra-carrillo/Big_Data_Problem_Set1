@@ -116,11 +116,17 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
   summary(geih18)
   
   # Vamos a crear la variable de edad al cuadrado
-  mutate(geih18,
-         age2=age^age)
+  geih18<-mutate(geih18,
+         age2=age*age)
+  
+  geih18<-geih18 %>%
+    subset(geih18,age>=18)
+  
+  geih18 %>%
+    filter(geih18,age>=18)
   
   # Estimación del modelo
-  model1<-lm(y_salary_m_hu~age,geih18)
-  stargazer(mod1,type="text")
+  model1<-lm(y_salary_m_hu~age+age2,geih18)
+  stargazer(model1,type="text")
   
 
