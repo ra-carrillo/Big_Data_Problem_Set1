@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Titulo: "Prediciendo el ingreso
+# Titulo: "Prediciendo el ingreso"
 # Subtitulo: Problem Set 1
 # Curso: "Big Data y Machine Learning"
 #-------------------------------------------------------------------------------
@@ -8,8 +8,7 @@
           # Diana Higuera
           # Sebastian Vallejo
           # Lizbeth Hernandez
-
-# Crado: 2023-02-08
+# Creado: 2023-02-08
 # Última modificación: 2023-02-12
 # # Descripción:Este código contiene información acerca de la obtención de los datos 
 #               utilizando web-scraping, la limpieza de la base de datos , el 
