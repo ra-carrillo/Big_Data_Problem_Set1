@@ -20,7 +20,6 @@
 # * Todos los datos iniciales se almacenan en /data
 # * Todos los códigos se almacenan en / scripts
 # * Todas las figuras ytablas se envían a /view
-
 # --------------------------------------------------------------------------------
 
 #---Limpiar el espacio de trabajo 
