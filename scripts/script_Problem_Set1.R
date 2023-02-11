@@ -135,6 +135,63 @@
   
   geih1 <- geih2018 %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
   
-
+  #---3. Estadística descriptiva
+  ## Creación de una variables categórica para rangos de edad
+  geih2= geih2 %>% mutate(
+    cat_age = case_when(
+      age <= 30~ '18-30',
+      age > 30 & age <= 50 ~ '30-50',
+      TRUE ~ '>50'
+    )
+  )
+  ## Tabla por rangos de edad
+  Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
+                    factor(maxEducLevel) + hoursWorkUsual + inglab + w
+                  | cat_age, 
+                  data=geih2, overall="Total")
+  
+  
+  #---4. Regresión 1_Age-wage profile
+  geih2$age2 <- geih2$age*geih2$age
+  reg1 <- lm(w ~ age + age2, data = geih2)
+  summary(reg1)
+  stargazer(reg1,type="text")
+  #Bootstrap
+  sample_coef_intercept <- NULL
+  sample_coef_x1 <- NULL
+  sample_erstd_x1 <- NULL
+  sample_coef_x2 <- NULL
+  sample_erstd_x2 <- NULL
+  for (i in 1:1000) {
+    sample_d = geih2[sample(1:nrow(geih2), 0.3*nrow(geih2), replace = TRUE), ]
+    reg_boots <- lm(w ~ age + age2, data = sample_d)
+    sample_coef_intercept <-
+      c(sample_coef_intercept, reg_boots$coefficients[1])
+    
+    sample_coef_x1 <-
+      c(sample_coef_x1, reg_boots$coefficients[2])
+    
+    sample_erstd_x1 <-
+      c(sample_erstd_x1, coef(summary(reg_boots))[2, 2])
+    
+    sample_coef_x2 <-
+      c(sample_coef_x2, reg_boots$coefficients[3])
+    
+    sample_erstd_x2 <-
+      c(sample_erstd_x2, coef(summary(reg_boots))[3, 2])
+  }
+  
+  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
+                 sample_coef_x2, sample_erstd_x2)
+  ## Combinación de los resultados en una tabla 
+  means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
+                  mean(sample_coef_x2))
+  erstd.boots = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
+  knitr::kable(round(
+    cbind(
+      sample = coef(summary(reg1))[, c(1,2)],
+      bootstrap = means.boots,
+      erstdBoots = erstd.boots),4), 
+    "simple", caption = "Coefficients in different models")
   
 
