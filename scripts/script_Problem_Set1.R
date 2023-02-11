@@ -133,7 +133,30 @@
   
   glimpse(geih18)
   
-  geih1 <- geih2018 %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+
+  #--- 2. Limpieza de la base de datos
+  
+  ## Filtrar la base con ocupados mayores a 18 años
+  geih1 <- geih18 %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+  ## Renombrar variables 
+  geih1<-geih1 %>% rename(inglab=p6500)
+  # Datos faltantes en la variable inglab
+  sum(is.na(geih1$inglab))
+  ## Imputación de valores faltantes, los datos faltantes de la variable inglab se reemplazan por los de ingresos total (ingtot)
+  geih1 <- geih1 %>% 
+    mutate(inglab = case_when(
+      !is.na(ingtot) ~ ingtot,
+      TRUE ~ inglab
+    ))
+  ## Crear la variable w, salario por hora, expresada como cifra entera en miles
+  geih1<-geih1 %>% mutate(w=inglab %/%(hoursWorkUsual*4))
+  sum(is.na(geih1$w))
+  ##Seleccionar las variables con las que se trabajará
+  geih2 <- geih1 %>% select(directorio, secuencia_p, orden, clase, estrato1, age, w, ingtot, maxEducLevel, ocu, sex)
+  str(geih2)
+  ## Convertir variables texto a factor
+  y <- c("estrato1", "sex", "maxEducLevel")
+  geih2[y] <- lapply(geih2[y], factor)
   
 
   
