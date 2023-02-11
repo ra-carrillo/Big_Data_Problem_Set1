@@ -8,6 +8,7 @@
           # Diana Higuera
           # Sebastian Vallejo
           # Lizbeth Hernandez
+
 # Creado: 2023-02-08
 # Última modificación: 2023-02-12
 # # Descripción:Este código contiene información acerca de la obtención de los datos 
@@ -18,7 +19,7 @@
 #   
 # * Todos los datos iniciales se almacenan en /data
 # * Todos los códigos se almacenan en / scripts
-# * Todas las figuras ytablas se envían a /view
+# * Todas las figuras y tablas se envían a /view
 # --------------------------------------------------------------------------------
 
 #---Limpiar el espacio de trabajo 
@@ -36,9 +37,10 @@
   ## El comandoo "p_load" permite instalar/cargar las librerías que se enlistan:
   p_load(tidyverse, # contiene las librerías ggplot, dplyr...
          rvest, # web-scraping
-         stargazer,)
+         stargazer,
+         tidymodels) # Tiene las herramientas para crear modelos de Machine learning
 
-#---1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping
+#---1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping ###################################################
   
   # *Nota: Aqui vamos a realizar el codigo para hacer web-scraping para una sola pag, 
   # posteriormente haremos un loop para el caso especifico del problem set que hay 
@@ -46,9 +48,11 @@
   
   
   ## leer el html de la página web donde estan los datos
+  
   data1_html<-read_html("https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_1.html")
   
   ## Ver la clase de objeto
+  
   class(data1_html)
   View(data1_html)
 
@@ -92,7 +96,7 @@
   write.table(data, "db_geih2018.txt", sep = "\t", quote = F, row.names = F)
   
   
-#--- 2. Limpieza de la base de datos
+#--- 2. Limpieza de la base de datos ###############################################################
   
   ## Visualización de una parte de la base de datos
   data
@@ -151,7 +155,7 @@
   y <- c("estrato1", "sex", "maxEducLevel")
   db_geih2018[y] <- lapply(db_geih2018[y], factor)
   
-  #---3. Estadística descriptiva
+  #---3. Estadística descriptiva ##########################################################################################
     
   ## Creación de una variables categórica para rangos de edad
   db_geih2018= db_geih2018 %>% mutate(
@@ -170,7 +174,7 @@
   # Obtener el código de latex para la tabla 1
   print(xtable(Tabla1), include.rownames = FALSE)
   
-  #---4. Regresión1: Profile Age-Wage
+  #---4. Regresión1: Profile Age-Wage #########################################################################
   
   db_geih2018$age2 <- db_geih2018$age*db_geih2018$age
   reg1 <- lm(w ~ age + age2, data = db_geih2018)
@@ -236,7 +240,7 @@
   colnames(d) <- c("2.5 %", "97.5 %",
                    "2.5 %", "97.5 %")
   
-  #---5. Regresión2: The gender earnings GAP
+  #---5. Regresión2: The gender earnings GAP ########################################################################
   reg2 <- lm(w ~ sex, data = db_geih2018)
   summary(reg2)
   stargazer(reg2,type="text")
