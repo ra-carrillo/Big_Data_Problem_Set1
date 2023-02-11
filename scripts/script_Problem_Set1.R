@@ -160,30 +160,7 @@
   
 <<<<<<< HEAD
   
-  # Intervalos de confianza
-  confint(reg1)
-  a <-
-    cbind(
-      quantile(sample_coef_intercept, prob = 0.025),
-      quantile(sample_coef_intercept, prob = 0.975))
-  b <-
-    cbind(quantile(sample_coef_x1, prob = 0.025),
-          quantile(sample_coef_x1, prob = 0.975))
-  c <-
-    cbind(quantile(sample_coef_x2, prob = 0.025),
-          quantile(sample_coef_x2, prob = 0.975))
-  d <-
-    round(cbind(
-      sample = confint(reg1),
-      boot = rbind(a, b, c)), 4)
-  colnames(d) <- c("2.5 %", "97.5 %",
-                   "2.5 %", "97.5 %")
-  
-  #---5. Regresión 2_The gender earnings GAP
-  reg2 <- lm(w ~ sex, data = geih2)
-  summary(reg2)
-  stargazer(reg2,type="text")
-
+ 
 =======
   #---3. Estadística descriptiva
   ## Creación de una variables categórica para rangos de edad
@@ -245,4 +222,27 @@
     "simple", caption = "Coefficients in different models")
 >>>>>>> e9fb9cd43af031e07e8673d31bae2087d3d1ba02
   
-
+  # Intervalos de confianza
+  confint(reg1)
+  a <-
+    cbind(
+      quantile(sample_coef_intercept, prob = 0.025),
+      quantile(sample_coef_intercept, prob = 0.975))
+  b <-
+    cbind(quantile(sample_coef_x1, prob = 0.025),
+          quantile(sample_coef_x1, prob = 0.975))
+  c <-
+    cbind(quantile(sample_coef_x2, prob = 0.025),
+          quantile(sample_coef_x2, prob = 0.975))
+  d <-
+    round(cbind(
+      sample = confint(reg1),
+      boot = rbind(a, b, c)), 4)
+  colnames(d) <- c("2.5 %", "97.5 %",
+                   "2.5 %", "97.5 %")
+  
+  #---5. Regresión 2_The gender earnings GAP
+  reg2 <- lm(w ~ sex, data = geih2)
+  summary(reg2)
+  stargazer(reg2,type="text")
+  
