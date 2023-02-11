@@ -117,6 +117,8 @@ p_load(tidyverse, # contiene las librerías ggplot, dplyr...
   
   glimpse(geih18)
   
+  geih1 <- geih2018 %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+  
 
   
 
