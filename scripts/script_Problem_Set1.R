@@ -199,10 +199,10 @@
   
   # Cuenta con 1778 NAs, es decir, 10% de la muestra. 
   
-  #Sigue siendo muy alto como para imputar
+  # Sigue siendo muy alto como para imputar
   
-  # Sin embargo, se pueden hacer dos abordajes para imputar esos valores faltantes
-  # Median imputation y KNN
+  # Sin embargo, se crea una variable adicional imputada por la mediana 
+  
   
   ##### Manejo de NAs #####
   
@@ -219,8 +219,11 @@
              )
            )
 
+  summary(geih2018$y_total_m)
   
+  summary(geih2018$y_total_m_imputada) # Se mantiene una distribución original bastante similar
   
+
   
   ## Renombrar variables 
   
@@ -254,6 +257,7 @@
   ## Convertir variables texto a factor
   y <- c("estrato1", "sex", "maxEducLevel")
   db_geih2018[y] <- lapply(db_geih2018[y], factor)
+  
   
   #---3. Estadística descriptiva ##########################################################################################
     
