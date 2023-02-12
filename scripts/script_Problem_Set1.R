@@ -131,24 +131,6 @@
   
   # En nuestra base de datos hay 3.421.720 datos faltantes
   
-  ##### Revisiones aleatorias con anexos DANE #####
-  
-  # Población Total: 8.164.164
-  
-  data %>% 
-    summarise(
-      Total = sum(fex_dpto,
-                  na.rm = TRUE)
-    )
-  
-  # Ocupados: 4.153.890 se aproxima al promedio mensual de 2018
-  
-  data %>% 
-    summarise(
-      Total = sum(fex_dpto*ocu, 
-                  na.rm = TRUE)
-    )
-  
   ## Filtrar la base con ocupados mayores a 18 años
   
   geih2018<- data %>% 
