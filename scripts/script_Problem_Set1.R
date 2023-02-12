@@ -28,7 +28,7 @@
 
 #---Configuración inicial : Instalar y llamar paquetes 
   
-  install.packages("pacman") # activar solo una vez en el pc
+  #install.packages("pacman") # activar solo una vez en el pc
   library(pacman)
 
   ## llamar la librería pacman: contiene la función p_load()
@@ -92,11 +92,16 @@
   getwd()
   
   ## Elegir el directorio 
+  
   setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
   
   ## Guardar data
   write.table(data, "db_geih2018.txt", sep = "\t", quote = F, row.names = F)
   
+  ##### Cargar base de datos para evitar correr el loop #####
+  
+  data <- read.delim(
+    "C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/data/db_geih2018.txt")
   
 #--- 2. Limpieza de la base de datos ###############################################################
   
@@ -133,7 +138,7 @@
   ## Filtrar la base con ocupados mayores a 18 años
   
   geih2018<- data %>% 
-    filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+    filter(age >= 18 & ocu == 1)
   
   #Inspección variables ingreso de la base de datos
   
@@ -186,17 +191,12 @@
         TRUE ~ Labor.Income.Test
       )
     )
-<<<<<<< HEAD
+
   
   summary(geih2018$Labor.Income.Test) 
-=======
   summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
-  summary(geih2018$Labor.Income.Alt) # Replica de la variable base datos (Incluye NAs)
->>>>>>> 8ce00adba4b200f06b17797595e4e7616c245b7f
-  
+
   # En promedio, sin el ingreso en especie, coincide con la variable y_total_m
-  
-  summary(geih2018$y_total_m)
   
   # Cuenta con 1778 NAs, es decir, 10% de la muestra. 
   
@@ -251,17 +251,13 @@
   geih2018<-geih2018 %>% 
     mutate(w=inglab %/%(hoursWorkUsual*4)) ## YO BORRARIA ESTO
   
-<<<<<<< HEAD
   sum(is.na(geih2018$w)) # Y ESTO. PARA EMPEZAR A LIMPIAR Y ESTANDARIZAR EL CODIGO
-=======
-  sum(is.na(geih2018$w))
+
  #Observación: No se tuvieron encuenta las horas trabajadas en la segunda actividad laboral
   # se sugiere utilizar horas total
   # ver abajo 
   
   #-----------------------------------------------------------------------
->>>>>>> 8ce00adba4b200f06b17797595e4e7616c245b7f
-  
  Zoom <- geih2018 %>%
    select(hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked)
   
@@ -662,18 +658,24 @@
     mutate(
       Sex = case_when(
         sex.old == 1 ~ "Man",
-        sex.old == 0 ~ "Women"),
-        
+        sex.old == 0 ~ "Women"
+        ),
       Work.Type  = case_when(
         relab == 1 ~ "Private Employee",
         relab == 2 ~ "Goverment Employee",
         relab == 3 ~ "Household Employee",
-        relab == 4 ~ "Independent",
+        relab == 4 ~ "Self Employed",
         relab == 5 ~ "Employer",
         relab == 6 ~ "No Rem Family Employee",
         relab == 7 ~ "No Rem Private Employee",
         relab == 8 ~ "Jornaler"
-      )
+      ),
+      Firm.Size  = case_when(
+        sizeFirm == 1 ~ "Self Employed",
+        sizeFirm == 2 ~ "2-5 Workers",
+        sizeFirm == 3 ~ "6-10 Workers",
+        sizeFirm == 4 ~ "11-50 Workers",
+        sizeFirm == 5 ~ ">50 Workers")
       )
   
   summary(Model_Data)
@@ -788,74 +790,6 @@
   #### Segundo modelo (Log(Wage) = Sex) #####
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
-  
-  GEIH_Recipe <- 
-    recipe(Log.Hourly.Wage ~ Sex, 
-           GEIH_Training) %>% 
-    step_string2factor(Sex)
-  
-  GEIH_Recipe
-  
-  ### Se especifica el modelo
-  
-  GEIH_Spec <- 
-    linear_reg() %>% 
-    set_engine("lm") %>% 
-    set_mode("regression")
-  
-  ### Workflow
-  
-  GEIH_Wflow <- workflow(GEIH_Recipe,
-                         GEIH_Spec)
-  
-  ### Se corre el modelo
-  
-  GEIH_Fit <- fit(GEIH_Wflow,
-                  GEIH_Training
-  )
-  
-  GEIH_Fit
-  
-  tidy(GEIH_Fit,
-       exponentiate = TRUE)
-  
-  Training_Metrics <- glance(GEIH_Fit)
-  
-  ### Métricas de evaluación
-  
-  GEIH_Test_Res <- predict(
-    GEIH_Fit, 
-    GEIH_Test %>% 
-      select(-Log.Hourly.Wage)
-  )
-  
-  GEIH_Test_Res <- bind_cols(GEIH_Test_Res, 
-                             GEIH_Test %>% 
-                               select(Log.Hourly.Wage))
-  
-  GEIH_Test_Res
-  
-  
-  ggplot(GEIH_Test_Res, 
-         aes(x = Log.Hourly.Wage, 
-             y = .pred)) + 
-    # Create a diagonal line:
-    geom_abline(lty = 2) + 
-    geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
-    # Scale and size the x- and y-axis uniformly:
-    coord_obs_pred()
-  
-  GEIH_Metrics <- metric_set(rmse, 
-                             rsq, 
-                             mae)
-  
-  GEIH_Metrics(GEIH_Test_Res, 
-               truth = Log.Hourly.Wage, 
-               estimate = .pred)
-  
-  
-  ### Se prepara la base de entrenamiento y se especifica la forma funcional
 
   GEIH_Recipe_M2 <- 
     recipe(Log.Hourly.Wage ~ Sex, 
@@ -934,7 +868,7 @@
   GEIH_Recipe <- 
     recipe(Log.Hourly.Wage ~ Sex + maxEducLevel + age + age2 + Work.Type + formal + sizeFirm + oficio, 
            GEIH_Training) %>% 
-    
+    step_string2factor(Sex, maxEducLevel, Work.Type, formal)
   
   GEIH_Recipe
   
