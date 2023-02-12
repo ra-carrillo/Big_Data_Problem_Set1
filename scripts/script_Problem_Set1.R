@@ -90,6 +90,7 @@
   getwd()
   
   ## Elegir el directorio 
+  
   setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
   
   ## Guardar data
@@ -123,31 +124,84 @@
   is.na(data)
   
   ## Cuantificar los valores perdidos de la base de datos
+  
   sum(is.na(data))
-  # En nuestra base de datos hay 3.421.720
+  
+  # En nuestra base de datos hay 3.421.720 datos faltantes
+  
+  ## Revisiones aleatorias con anexos DANE
+  
+  # Población Total: 8.164.164
+  
+  data %>% 
+    summarise(
+      Total = sum(fex_dpto,
+                  na.rm = TRUE)
+    )
+  
+  # Ocupados: 4.153.890 se aproxima al promedio mensual de 2018
+  
+  data %>% 
+    summarise(
+      Total = sum(fex_dpto*ocu, 
+                  na.rm = TRUE)
+    )
   
   ## Filtrar la base con ocupados mayores a 18 años
-  geih2018<- data %>% filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+  
+  geih2018<- data %>% 
+    filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
+  
+  ## Cálculo de la variable de ingreso laboral según la metodología de pobreza del DANE
+  # Revisar documento metodológico carpeta docs
+  
+  geih2018 <- geih2018 %>% 
+    rowwise() %>% 
+    mutate( 
+      Labor.Income = sum(impa, # ingreso primera actividades
+                         impaes, # ingreso pa imputado por DANE
+                         ie, # ingreso en especie
+                         iees,# ingreso en especie imputado
+                         isa, # ingreso por segunda actividad
+                         isaes, # ingreso por sa imputado
+                         na.rm = TRUE)
+    )
+  
+  
+  summary(geih2018$Labor.Income) # No contamos con NAs
+  
+  Zeros <- geih2018 %>% 
+    filter(Labor.Income == 0) # 323 observaciones cuentan con ingresos igual a 0
+  
+  # Corresponde al 1% de la muestra
+  
   
   ## Renombrar variables 
-  geih2018<-geih2018 %>% rename(inglab=p6500)
+  
+  geih2018<-geih2018 %>% 
+    rename(inglab=p6500)
   
   ## Datos faltantes en la variable inglab
+  
   sum(is.na(geih2018$inglab)) 
   
   ## Imputación de valores faltantes, los datos faltantes de la variable inglab 
   #  se reemplazan por los de ingresos total (ingtot)
+  
   geih2018<- geih2018 %>% 
     mutate(inglab = case_when(
       !is.na(ingtot) ~ ingtot,
       TRUE ~ inglab
-    ))
+    )) # Yo no borraria esta parte bajo el nuevo ingreso
   
   ## Crear la variable w, salario por hora, expresada como cifra entera en miles
-  geih2018<-geih2018 %>% mutate(w=inglab %/%(hoursWorkUsual*4))
+  geih2018<-geih2018 %>% 
+    mutate(w=inglab %/%(hoursWorkUsual*4))
+  
   sum(is.na(geih2018$w))
   
   ##Seleccionar las variables con las que se trabajará
+  
   db_geih2018 <- geih2018 %>% select(directorio, secuencia_p, orden, clase, estrato1, age, w,inglab, ingtot, maxEducLevel, ocu, sex)
   str(db_geih2018)
   
@@ -158,6 +212,7 @@
   #---3. Estadística descriptiva ##########################################################################################
     
   ## Creación de una variables categórica para rangos de edad
+  
   db_geih2018= db_geih2018 %>% mutate(
     cat_age = case_when(
       age <= 30~ '18-30',
@@ -244,4 +299,9 @@
   reg2 <- lm(w ~ sex, data = db_geih2018)
   summary(reg2)
   stargazer(reg2,type="text")
+  
+
+  
+  #---6 Predicting Earnings ############################################################
+  
   
