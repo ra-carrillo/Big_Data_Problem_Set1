@@ -273,8 +273,8 @@
  ### Se calcula el ingreso laboral por hora
  
  geih2018 <- geih2018 %>% 
-   mutate(Hourly.Wage = round(Weekly.Wage/(totalHoursWorked)),
-          Hourly.Wage.DANE = round(Weekly.Wage.DANE/totalHoursWorked)
+   mutate(Hourly.Wage = round(Weekly.Wage/totalHoursWorked,1),
+          Hourly.Wage.DANE = round(Weekly.Wage.DANE/totalHoursWorked,1)
           )
  
  Zoom <- geih2018 %>% 
@@ -300,8 +300,7 @@
          formal, relab, regSalud, cotPension, sizeFirm # Variables laborales relevantes
          )
    
- 
-  str(db_geih2018)
+
   
   ## Convertir variables texto a factor
   
@@ -410,17 +409,38 @@
   
   #---4. Regresión1: Profile Age-Wage #########################################################################
   
-  db_geih2018$age2 <- db_geih2018$age*db_geih2018$age
-  reg1 <- lm(w ~ age + age2, data = db_geih2018)
-  summary(reg1)
-  stargazer(reg1,type="text")
+  # Creacion de la variables necesarias para correr el modelo
   
+  db_geih2018 <- db_geih2018 %>% 
+    mutate(
+      age2 = age^2, # Edad al cuadrado
+      Log.Hourly.Wage = log(Hourly.Wage) # Log del salario por hora
+    )
+  
+  OLS_Data <- db_geih2018
+  
+  reg1 <- lm(log(w) ~ age + age2,# Aqui no deberia ser el logaritmo del salario por hora?
+             data = db_geih2018) # Por otro lado yo actualizaría a las nuevas variables de ingreso laboral
+  
+  summary(reg1)
+  
+  stargazer(reg1,type="text")
+
+  reg1 <- lm(Log.Hourly.Wage ~ age + age2,
+             data = db_geih2018)
+  
+  summary(reg1)
+  
+  stargazer(reg1,type="text")
+
   #Bootstrap
+  
   sample_coef_intercept <- NULL
   sample_coef_x1 <- NULL
   sample_erstd_x1 <- NULL
   sample_coef_x2 <- NULL
   sample_erstd_x2 <- NULL
+  
   for (i in 1:1000) {
     sample_d = db_geih2018[sample(1:nrow(db_geih2018), 0.3*nrow(db_geih2018), replace = TRUE), ]
     reg_boots <- lm(w ~ age + age2, data = sample_d)
@@ -444,6 +464,7 @@
                  sample_coef_x2, sample_erstd_x2)
   
   ## Combinación de los resultados en una tabla 
+  
   means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
                   mean(sample_coef_x2))
   erstd.boots = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
