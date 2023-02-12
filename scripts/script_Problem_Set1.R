@@ -92,7 +92,6 @@
   getwd()
   
   ## Elegir el directorio 
-  
   setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
   
   ## Guardar data
@@ -136,6 +135,18 @@
   geih2018<- data %>% 
     filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
   
+  #Inspección variables ingreso de la base ded atos
+  
+  summary(geih2018$y_ingLab_m) #	labor income salaried - nominal monthly - all occ. (includes tips and commission
+  summary(geih2018$y_total_m) # income salaried + independents total - nominal monthly
+
+  #Porcentaje de valores perdidos
+  6650/16542
+  1778/16542
+  
+  #Imputar datos 
+  
+  #Construccion variable ingreso laboral (Metodología DANE)
   ##### Cálculo de la variable de ingreso laboral según la metodología de pobreza del DANE #####
   # Revisar documento metodológico carpeta docs
   
@@ -151,14 +162,17 @@
                          na.rm = TRUE)
     )
   
-  summary(geih2018$Labor.Income.DANE) # No contamos con NAs
+  summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
+  summary(geih2018$Labor.Income.DANE ) # Variable construida No contamos con NAs
   
-  
+  #Visualizar cuantas observaciones tienen ingresos iguales a 0
   Zeros <- geih2018 %>% 
-    filter(Labor.Income == 0) # 323 observaciones cuentan con ingresos igual a 0
+    filter(Labor.Income.DANE== 0) # 323 observaciones cuentan con ingresos igual a 0
   
+  323/16542
   # Corresponde al 1% de la muestra
   
+  # Replicar variable "y_total_m"
   ### Cálculo del Ingreso laboral sin variables imputadas por el DANE
   
   geih2018 <- geih2018 %>% 
@@ -173,8 +187,8 @@
         TRUE ~ Labor.Income.Test
       )
     )
-  
-  summary(geih2018$Labor.Income.Alt) 
+  summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
+  summary(geih2018$Labor.Income.Alt) # Replica de la variable base datos (Incluye NAs)
   
   # En promedio, sin el ingreso en especie, coincide con la variable y_total_m
   
