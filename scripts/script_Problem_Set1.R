@@ -306,7 +306,7 @@
   ## Convertir variables texto a factor
   
   y <- c("estrato1", "sex", "maxEducLevel")
-  db_geih2018[y] <- lapply(db_geih2018[y], factor)
+  db_geih2018[y] <- lapply(db_geih2018[y], as.factor)
   
   
   #---3. Estadística descriptiva ##########################################################################################
@@ -386,25 +386,26 @@
   # Se ve mas clara la relacion cuadratica que queremos encontrar
   
   
-  ##### Creación de una variables categórica para rangos de edad #####
+  ##### REVISAR ESTE CHUNK Creación de una variables categórica para rangos de edad #####
   
-  db_geih2018= db_geih2018 %>% mutate(
-    cat_age = case_when(
-      age <= 30~ '18-30',
-      age > 30 & age <= 50 ~ '30-50',
-      TRUE ~ '>50'
-    )
-  )
+  # db_geih2018= db_geih2018 %>% mutate(
+  #   cat_age = case_when(
+  #     age <= 30~ '18-30',
+  #     age > 30 & age <= 50 ~ '30-50',
+  #     TRUE ~ '>50'
+  #   )
+  # )
   
-  ## Tabla por rangos de edad
+  ## Tabla por rangos de edad REVISAR LAS VARIABLES SI ESTAN EN LA BASE
   
-  Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
-                    factor(maxEducLevel) + totalHoursWorked + inglab + w
-                  | cat_age, 
-                  data=db_geih2018, overall="Total")
+  #Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
+   #                 factor(maxEducLevel) + hoursWorkUsual + inglab + w
+    #              | cat_age, 
+     #             data=db_geih2018, overall="Total")
+
   
   # Obtener el código de latex para la tabla 1
-  print(xtable(Tabla1), include.rownames = FALSE)
+  #print(xtable(Tabla1), include.rownames = FALSE)
   
   
   #---4. Regresión1: Profile Age-Wage #########################################################################
