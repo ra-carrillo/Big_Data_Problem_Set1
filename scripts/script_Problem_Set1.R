@@ -298,10 +298,32 @@
  
   str(db_geih2018)
   
+  ###### BORRAR_Necesitamos modificar la selección de datos con las siguientes líneas de código para que las líneas de la tabla descriptiva corra 
+  ##Seleccionar las variables con las que se trabajará
+  keeps <- c("directorio", ##incluir las que se requieran para los puntos restantes
+             "secuencia_p",
+             "orden",
+             "clase",
+             "mes",
+             "estrato1",
+             "age",
+             "w",
+             "inglab",
+             "maxEducLevel",
+             "ocu",
+             "hoursWorkUsual",
+             "sex")
+  ## Feature selection
+  geih2 <- geih2[keeps]
+  geih2$id_unico <- paste(geih2$directorio,
+                          geih2$secuencia_p,geih2$orden,sep='-')
+  geih2 <- select(geih2, 
+                  -c('directorio', 'secuencia_p', 'orden', 'mes'))
+  
   ## Convertir variables texto a factor
   
   y <- c("estrato1", "sex", "maxEducLevel")
-  db_geih2018[y] <- lapply(db_geih2018[y], factor)
+  geih2[y] <- lapply(geih2[y], factor)
   
   
   #---3. Estadística descriptiva ##########################################################################################
@@ -316,10 +338,11 @@
     )
   )
   ## Tabla por rangos de edad
-  Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
-                    factor(maxEducLevel) + hoursWorkUsual + inglab + w
-                  | cat_age, 
-                  data=db_geih2018, overall="Total")
+  Tabla1 <- table1(~ age + factor(sex) + factor(estrato1) +
+                     factor(maxEducLevel) + hoursWorkUsual + inglab + w
+                   | cat_age, 
+                   data=geih2, overall="Total")
+  
   
   # Obtener el código de latex para la tabla 1
   print(xtable(Tabla1), include.rownames = FALSE)
