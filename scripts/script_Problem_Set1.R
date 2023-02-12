@@ -224,7 +224,8 @@
   # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
 
   ##### Renombrar variables (Yo borraria esta subsección) #####  
-  
+
+#-----------------------------------------------------------------------------  
   geih2018<-geih2018 %>% 
     rename(inglab=p6500)
   
@@ -240,13 +241,18 @@
       !is.na(ingtot) ~ ingtot,
       TRUE ~ inglab
     ))
-  
+#-------------------------------------------------------------------------------  
   ##### Creación variable de ingreso laboral por hora #####
   
   geih2018<-geih2018 %>% 
     mutate(w=inglab %/%(hoursWorkUsual*4)) 
   
   sum(is.na(geih2018$w))
+ #Observación: No se tuvieron encuenta las horas trabajadas en la segunda actividad laboral
+  # se sugiere utilizar horas total
+  # ver abajo 
+  
+  #-----------------------------------------------------------------------
   
  Zoom <- geih2018 %>% 
    select(hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked)
@@ -254,7 +260,6 @@
  # incluye las work usual más de las del segundo trabajo
 
  summary(Zoom)
- 
  # Por la distribucion se asume que son horas semanales trabajadas
  
  ### Se calcula el ingreso laboral por semana
@@ -263,6 +268,8 @@
    mutate(Weekly.Wage = round(y_total_m_imputada/4),
           Weekly.Wage.DANE = round(Labor.Income.DANE/4)
    )
+ summary( geih2018  $Weekly.Wage)
+ summary( geih2018  $Weekly.Wage.DANE)
  
  ### Se calcula el ingreso laboral por hora
  
@@ -290,7 +297,7 @@
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         inglab, w, # Las que yo borraria
+         #inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
    
