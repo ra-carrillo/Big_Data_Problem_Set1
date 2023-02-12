@@ -38,6 +38,8 @@
   p_load(tidyverse, # contiene las librerías ggplot, dplyr...
          rvest, # web-scraping
          stargazer,
+         ggplot2, 
+         hrbrthemes,
          tidymodels) # Tiene las herramientas para crear modelos de Machine learning
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping ###################################################
@@ -292,9 +294,12 @@
   select(directorio, secuencia_p, orden, # Variables de ID
          clase, estrato1, age, maxEducLevel, sex, # Demograficas
          Labor.Income.DANE, y_total_m_imputada,
+         hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
+         inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm # Variables laborales relevantes
          )
+   
  
   str(db_geih2018)
   
@@ -306,7 +311,82 @@
   
   #---3. Estadística descriptiva ##########################################################################################
     
-  ## Creación de una variables categórica para rangos de edad
+  ##### Box plot Edad - Ingreso Laboral #####
+  
+  db_geih2018 %>% 
+    ggplot(aes(x=age, 
+               y=Hourly.Wage, 
+               fill= sex)) + 
+    geom_boxplot(alpha=0.3) +
+    theme(legend.position="none") +
+    scale_y_continuous(labels = scales::comma) +
+    scale_fill_brewer(palette="BuPu") # Demasiados Outliers!
+  
+  # Se computan los limites inferiores y superiores del boxplot
+  
+  ylim1 = boxplot.stats(db_geih2018$Hourly.Wage)$stats[c(1, 5)]
+  
+  db_geih2018 %>% 
+    ggplot(aes(x=age, 
+               y=Hourly.Wage, 
+               fill= sex)) + 
+    geom_boxplot(alpha=0.3,
+                 outlier.shape = NA) +
+    scale_y_continuous(labels = scales::comma) +
+    coord_cartesian(ylim = ylim1*1.05) +
+    scale_fill_brewer(palette="Dark2")
+  
+  # No parecen haber diferencias en el salario por hora
+  
+  ### Boxplot con ingreso laboral mensual
+  
+  ylim1 = boxplot.stats(db_geih2018$y_total_m_imputada)$stats[c(1, 5)]
+  
+  db_geih2018 %>% 
+    ggplot(aes(x=age, 
+               y=y_total_m_imputada, 
+               fill= sex)) + 
+    geom_boxplot(alpha=0.3,
+                 outlier.shape = NA) +
+    scale_y_continuous(labels = scales::comma) +
+    coord_cartesian(ylim = ylim1*1.05) +
+    scale_fill_brewer(palette="Dark2")
+  
+  #### Si se toma el ingreso laboral mensual, ya se empieza a apreciar la brecha salarial
+  
+  ##### Scatter plot Edad - Ingreso laboral #####
+  
+  ### Ingreso laboral por hora 
+  
+  db_geih2018 %>% 
+    ggplot(aes(x=age, 
+               y = Hourly.Wage,
+               shape = sex,
+               color = sex)
+    ) + 
+    geom_point() +
+    scale_y_continuous(labels = scales::comma) +
+    #coord_cartesian(ylim = ylim1*1.05) +
+    theme_minimal()
+  
+  ### Ingreso laboral mensual 
+  
+  db_geih2018 %>% 
+    filter(y_total_m_imputada <= 20000000) %>%  
+    ggplot(aes(x=age, 
+               y = y_total_m_imputada,
+               shape = sex,
+               color = sex)
+    ) + 
+    geom_point() +
+    scale_y_continuous(labels = scales::comma) +
+    stat_smooth(method = "lm", formula = y ~ x + I(x^2), linewidth = 1) +
+    theme_minimal()
+  
+  # Se ve mas clara la relacion cuadratica que queremos encontrar
+  
+  
+  ##### Creación de una variables categórica para rangos de edad #####
   
   db_geih2018= db_geih2018 %>% mutate(
     cat_age = case_when(
@@ -315,14 +395,17 @@
       TRUE ~ '>50'
     )
   )
+  
   ## Tabla por rangos de edad
+  
   Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
-                    factor(maxEducLevel) + hoursWorkUsual + inglab + w
+                    factor(maxEducLevel) + totalHoursWorked + inglab + w
                   | cat_age, 
                   data=db_geih2018, overall="Total")
   
   # Obtener el código de latex para la tabla 1
   print(xtable(Tabla1), include.rownames = FALSE)
+  
   
   #---4. Regresión1: Profile Age-Wage #########################################################################
   
