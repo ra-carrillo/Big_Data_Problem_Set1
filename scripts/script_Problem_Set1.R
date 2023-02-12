@@ -289,11 +289,17 @@
   ####### Seleccionar las variables con las que se trabajará #####
   
   db_geih2018 <- geih2018 %>% 
-  select(directorio, secuencia_p, orden, clase, estrato1, age, 
-         w,inglab, ingtot, maxEducLevel, ocu, sex)
+  select(directorio, secuencia_p, orden, # Variables de ID
+         clase, estrato1, age, maxEducLevel, sex, # Demograficas
+         Labor.Income.DANE, y_total_m_imputada,
+         Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
+         formal, relab, regSalud, cotPension, sizeFirm # Variables laborales relevantes
+         )
+ 
   str(db_geih2018)
   
   ## Convertir variables texto a factor
+  
   y <- c("estrato1", "sex", "maxEducLevel")
   db_geih2018[y] <- lapply(db_geih2018[y], factor)
   
