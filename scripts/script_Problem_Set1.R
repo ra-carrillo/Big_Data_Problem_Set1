@@ -135,16 +135,15 @@
   geih2018<- data %>% 
     filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
   
-  #Inspección variables ingreso de la base ded atos
+  #Inspección variables ingreso de la base de datos
   
   summary(geih2018$y_ingLab_m) #	labor income salaried - nominal monthly - all occ. (includes tips and commission
   summary(geih2018$y_total_m) # income salaried + independents total - nominal monthly
 
   #Porcentaje de valores perdidos
+  
   6650/16542
   1778/16542
-  
-  #Imputar datos 
   
   #Construccion variable ingreso laboral (Metodología DANE)
   ##### Cálculo de la variable de ingreso laboral según la metodología de pobreza del DANE #####
@@ -167,12 +166,8 @@
   
   #Visualizar cuantas observaciones tienen ingresos iguales a 0
   Zeros <- geih2018 %>% 
-<<<<<<< HEAD
     filter(Labor.Income.DANE == 0) # 323 observaciones cuentan con ingresos igual a 0
-=======
-    filter(Labor.Income.DANE== 0) # 323 observaciones cuentan con ingresos igual a 0
->>>>>>> 8ce00adba4b200f06b17797595e4e7616c245b7f
-  
+
   323/16542
   # Corresponde al 1% de la muestra
   
@@ -328,7 +323,7 @@
   db_geih2018 %>% 
     ggplot(aes(x=age, 
                y=Hourly.Wage, 
-               fill= sex)) + 
+               fill= as.factor(sex))) + 
     geom_boxplot(alpha=0.3) +
     theme(legend.position="none") +
     scale_y_continuous(labels = scales::comma) +
@@ -341,7 +336,7 @@
   db_geih2018 %>% 
     ggplot(aes(x=age, 
                y=Hourly.Wage, 
-               fill= sex)) + 
+               fill= as.factor(sex))) + 
     geom_boxplot(alpha=0.3,
                  outlier.shape = NA) +
     scale_y_continuous(labels = scales::comma) +
@@ -357,7 +352,7 @@
   db_geih2018 %>% 
     ggplot(aes(x=age, 
                y=Labor.Income, 
-               fill= sex)) + 
+               fill= as.factor(sex))) + 
     geom_boxplot(alpha=0.3,
                  outlier.shape = NA) +
     scale_y_continuous(labels = scales::comma) +
@@ -666,11 +661,20 @@
            sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
     mutate(
       Sex = case_when(
-        sex.old == 1 ~ "Hombre",
-        sex.old == 0 ~ "Mujer"
+        sex.old == 1 ~ "Man",
+        sex.old == 0 ~ "Women"),
         
+      Work.Type  = case_when(
+        relab == 1 ~ "Private Employee",
+        relab == 2 ~ "Goverment Employee",
+        relab == 3 ~ "Household Employee",
+        relab == 4 ~ "Independent",
+        relab == 5 ~ "Employer",
+        relab == 6 ~ "No Rem Family Employee",
+        relab == 7 ~ "No Rem Private Employee",
+        relab == 8 ~ "Jornaler"
       )
-    )
+      )
   
   summary(Model_Data)
   
@@ -678,7 +682,7 @@
   
   ## Computada e imputada por nosotros
   
-  Mode_Data %>% 
+  Model_Data %>% 
     ggplot(aes(x = Log.Hourly.Wage)) + 
     geom_histogram(alpha = 0.5)
   
@@ -686,7 +690,7 @@
   
   ## Imputada por DANE
   
-  Mode_Data %>% 
+  Model_Data %>% 
     ggplot(aes(x = Log.Hourly.Wage.DANE)) + 
     geom_histogram(alpha = 0.5)
   
@@ -786,8 +790,9 @@
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
   GEIH_Recipe <- 
-    recipe(Log.Hourly.Wage ~ sex, 
-           GEIH_Training)
+    recipe(Log.Hourly.Wage ~ Sex, 
+           GEIH_Training) %>% 
+    step_string2factor(Sex)
   
   GEIH_Recipe
   
@@ -848,14 +853,6 @@
   GEIH_Metrics(GEIH_Test_Res, 
                truth = Log.Hourly.Wage, 
                estimate = .pred)
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
@@ -930,13 +927,14 @@
   
   #### Tercer modelo (Log(Wage) = Sex + Controles (FWL)) #####
   
-  ### Se estima el modelo OLS original
+  ### Se estima el modelo MCO original
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
   GEIH_Recipe <- 
-    recipe(Log.Hourly.Wage ~ sex + , 
-           GEIH_Training)
+    recipe(Log.Hourly.Wage ~ Sex + maxEducLevel + age + age2 + Work.Type + formal + sizeFirm + oficio, 
+           GEIH_Training) %>% 
+    
   
   GEIH_Recipe
   
