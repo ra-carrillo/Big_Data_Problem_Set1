@@ -275,13 +275,7 @@
          #inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
-   
-  ## Convertir variables texto a factor
-  
-  y <- c("estrato1", "sex", "maxEducLevel")
-  db_geih2018[y] <- lapply(db_geih2018[y], as.factor)
-  
-  
+ 
   #---3. Estadística descriptiva ##########################################################################################
     
   ##### Box plot Edad - Ingreso Laboral #####
@@ -358,27 +352,6 @@
   
   # Se ve mas clara la relacion cuadratica que queremos encontrar
   
-  ##### REVISAR ESTE CHUNK Creación de una variables categórica para rangos de edad #####
-  
-  # db_geih2018= db_geih2018 %>% mutate(
-  #   cat_age = case_when(
-  #     age <= 30~ '18-30',
-  #     age > 30 & age <= 50 ~ '30-50',
-  #     TRUE ~ '>50'
-  #   )
-  # )
-  
-  ## Tabla por rangos de edad REVISAR LAS VARIABLES SI ESTAN EN LA BASE
-  
-  #Tabla1 <- table(~ age + factor(sex) + factor(estrato1) +
-   #                 factor(maxEducLevel) + hoursWorkUsual + inglab + w
-    #              | cat_age, 
-     #             data=db_geih2018, overall="Total")
-
-  
-  # Obtener el código de latex para la tabla 1
-  #print(xtable(Tabla1), include.rownames = FALSE)
-  
   
   #---4. Regresión1: Profile Age-Wage 
   
@@ -393,15 +366,8 @@
   
  ### Se corre el modelo por MCO
   
-  reg1 <- lm(w ~ age + age2,# Aqui no deberia ser el logaritmo del salario por hora?
-             data = db_geih2018) # Por otro lado yo actualizaría a las nuevas variables de ingreso laboral
-  
-  summary(reg1)
-  
-  stargazer(reg1,type="text")
-
   reg1 <- lm(Log.Hourly.Wage ~ age + age2,
-             data = db_geih2018) # Dejo actualizacion del codigo
+             data = db_geih2018) 
   
   summary(reg1)
   
@@ -417,7 +383,7 @@
   
   for (i in 1:1000) {
     sample_d = db_geih2018[sample(1:nrow(db_geih2018), 0.3*nrow(db_geih2018), replace = TRUE), ]
-    reg_boots <- lm(w ~ age + age2, data = sample_d)
+    reg_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
     sample_coef_intercept <-
       c(sample_coef_intercept, reg_boots$coefficients[1])
     
@@ -470,7 +436,7 @@
   #---5. Regresión2: The gender earnings GAP ########################################################################
 
   
-  reg2 <- lm(Hourly.wage ~ sex, data = db_geih2018) #definir si se correràn con Hourly.wage.DANE o Hourly.wage
+  reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
   summary(reg2)
   stargazer(reg2,type="text")
   
@@ -480,7 +446,7 @@
   
   ## men
   Tabla_men$age2 <- Tabla_men$age*Tabla_men$age
-  reg_men <- lm(Hourly.Wage.DANE ~ age + age2, data = Tabla_men)
+  reg_men <- lm(Log.Hourly.Wage ~ age + age2, data = Tabla_men)
   sample_coef_intercept <- NULL
   sample_coef_x1 <- NULL
   sample_erstd_x1 <- NULL
@@ -489,7 +455,7 @@
   for (i in 1:1000) {
     sample_d = Tabla_men[sample(1:nrow(Tabla_men), 0.3*nrow(Tabla_men), replace = TRUE), ]
     
-    model_boots <- lm(Hourly.Wage.DANE ~ age + age2, data = sample_d)
+    model_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
     
     sample_coef_intercept <-
       c(sample_coef_intercept, model_boots$coefficients[1])
@@ -544,7 +510,7 @@
   
   ## female
   Tabla_fem$age2 <- Tabla_fem$age*Tabla_fem$age
-  reg_fem <- lm(Hourly.wage.DANE ~ age + age2, data = Tabla_fem)
+  reg_fem <- lm(Log.Hourly.Wage ~ age + age2, data = Tabla_fem)
   sample_coef_intercept <- NULL
   sample_coef_x1 <- NULL
   sample_erstd_x1 <- NULL
@@ -553,7 +519,7 @@
   for (i in 1:1000) {
     sample_d = Tabla_fem[sample(1:nrow(Tabla_fem), 0.3*nrow(Tabla_fem), replace = TRUE), ]
     
-    model_boots <- lm(Hourly.wage.DANE ~ age + age2, data = sample_d)
+    model_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
     
     sample_coef_intercept <-
       c(sample_coef_intercept, model_boots$coefficients[1])
@@ -604,11 +570,6 @@
   colnames(d) <- c("2.5 %", "97.5 %",
                    "2.5 %", "97.5 %")
   d
-  
-  
-  reg2 <- lm(w ~ sex, data = db_geih2018) # De nuevo, aqui es e log del salario
-  summary(reg2)
-  stargazer(reg2,type="text")
   
   
   reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
