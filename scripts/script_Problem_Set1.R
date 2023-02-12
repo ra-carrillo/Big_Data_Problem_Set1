@@ -571,6 +571,71 @@
   d
   
 
+  
+  
+  ## female
+  Tabla_fem$age2 <- Tabla_fem$age*Tabla_fem$age
+  reg_fem <- lm(Hourly.wage.DANE ~ age + age2, data = Tabla_fem)
+  sample_coef_intercept <- NULL
+  sample_coef_x1 <- NULL
+  sample_erstd_x1 <- NULL
+  sample_coef_x2<- NULL
+  sample_erstd_x2 <- NULL
+  for (i in 1:1000) {
+    sample_d = Tabla_fem[sample(1:nrow(Tabla_fem), 0.3*nrow(Tabla_fem), replace = TRUE), ]
+    
+    model_boots <- lm(Hourly.wage.DANE ~ age + age2, data = sample_d)
+    
+    sample_coef_intercept <-
+      c(sample_coef_intercept, model_boots$coefficients[1])
+    
+    sample_coef_x1 <-
+      c(sample_coef_x1, model_boots$coefficients[2])
+    
+    sample_erstd_x1 <-
+      c(sample_erstd_x1, coef(summary(model_boots))[2, 2])
+    
+    sample_coef_x2 <-
+      c(sample_coef_x2, model_boots$coefficients[3])
+    
+    sample_erstd_x2 <-
+      c(sample_erstd_x2, coef(summary(model_boots))[3, 2])
+  }
+  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
+                 sample_coef_x2, sample_erstd_x2)
+  
+  # Combinar los resultados en una tabla
+  means.boot = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
+                 mean(sample_coef_x2))
+  erstd.boot = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
+  knitr::kable(round(
+    cbind(
+      sample = coef(summary(reg_fem))[, c(1,2)],
+      bootstrap = means.boot,
+      erstdBoots = erstd.boot),4), 
+    "simple", caption = "Coefficients in different models")
+  
+  
+  # Intervalos de confianza 
+  confint(reg_fem)
+  a <-
+    cbind(
+      quantile(sample_coef_intercept, prob = 0.025),
+      quantile(sample_coef_intercept, prob = 0.975))
+  b <-
+    cbind(quantile(sample_coef_x1, prob = 0.025),
+          quantile(sample_coef_x1, prob = 0.975))
+  c <-
+    cbind(quantile(sample_coef_x2, prob = 0.025),
+          quantile(sample_coef_x2, prob = 0.975))
+  d <-
+    round(cbind(
+      sample = confint(reg_fem),
+      boot = rbind(a, b, c)), 4)
+  colnames(d) <- c("2.5 %", "97.5 %",
+                   "2.5 %", "97.5 %")
+  d
+  
 =======
   
   reg2 <- lm(w ~ sex, data = db_geih2018) # De nuevo, aqui es e log del salario
