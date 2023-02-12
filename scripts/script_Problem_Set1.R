@@ -463,7 +463,7 @@
   coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
                  sample_coef_x2, sample_erstd_x2)
   
-  ## Combinación de los resultados en una tabla 
+  ## Combinar los resultados en una tabla 
   
   means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
                   mean(sample_coef_x2))
@@ -496,9 +496,76 @@
                    "2.5 %", "97.5 %")
   
   #---5. Regresión2: The gender earnings GAP ########################################################################
-  reg2 <- lm(w ~ sex, data = db_geih2018)
+  reg2 <- lm(Hourly.wage.DANE ~ sex, data = db_geih2018) #definir si se correràn con Hourly.wage.DANE o Hourly.wage
   summary(reg2)
   stargazer(reg2,type="text")
+  
+  ## Bootstrap por género
+  Tabla_men <- db_geih2018 %>% filter(sex == 1)
+  Tabla_fem <- db_geih2018 %>% filter(sex == 0)
+  
+  ## men
+  Tabla_men$age2 <- Tabla_men$age*Tabla_men$age
+  reg_men <- lm(Hourly.Wage.DANE ~ age + age2, data = Tabla_men)
+  sample_coef_intercept <- NULL
+  sample_coef_x1 <- NULL
+  sample_erstd_x1 <- NULL
+  sample_coef_x2<- NULL
+  sample_erstd_x2 <- NULL
+  for (i in 1:1000) {
+    sample_d = Tabla_men[sample(1:nrow(Tabla_men), 0.3*nrow(Tabla_men), replace = TRUE), ]
+    
+    model_boots <- lm(Hourly.Wage.DANE ~ age + age2, data = sample_d)
+    
+    sample_coef_intercept <-
+      c(sample_coef_intercept, model_boots$coefficients[1])
+    
+    sample_coef_x1 <-
+      c(sample_coef_x1, model_boots$coefficients[2])
+    
+    sample_erstd_x1 <-
+      c(sample_erstd_x1, coef(summary(model_boots))[2, 2])
+    
+    sample_coef_x2 <-
+      c(sample_coef_x2, model_boots$coefficients[3])
+    
+    sample_erstd_x2 <-
+      c(sample_erstd_x2, coef(summary(model_boots))[3, 2])
+  }
+  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
+                 sample_coef_x2, sample_erstd_x2)
+  
+  # Combinar los resultados en una tabla 
+  means.boot = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
+                 mean(sample_coef_x2))
+  erstd.boot = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
+  knitr::kable(round(
+    cbind(
+      sample = coef(summary(reg_men))[, c(1,2)],
+      bootstrap = means.boot,
+      erstdBoots = erstd.boot),4), 
+    "simple", caption = "Coefficients in different models")
+  
+  # Intervalos de confianza
+  
+  confint(reg_men)
+  a <-
+    cbind(
+      quantile(sample_coef_intercept, prob = 0.025),
+      quantile(sample_coef_intercept, prob = 0.975))
+  b <-
+    cbind(quantile(sample_coef_x1, prob = 0.025),
+          quantile(sample_coef_x1, prob = 0.975))
+  c <-
+    cbind(quantile(sample_coef_x2, prob = 0.025),
+          quantile(sample_coef_x2, prob = 0.975))
+  d <-
+    round(cbind(
+      sample = confint(reg_men),
+      boot = rbind(a, b, c)), 4)
+  colnames(d) <- c("2.5 %", "97.5 %",
+                   "2.5 %", "97.5 %")
+  d
   
 
   
