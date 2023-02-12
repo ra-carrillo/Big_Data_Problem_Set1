@@ -42,7 +42,7 @@
          hrbrthemes,
          tidymodels) # Tiene las herramientas para crear modelos de Machine learning
 
-#---1. Descargar base de datos de la GEIH 2018-Bogotá uasndo web-scraping ###################################################
+#---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
   # *Nota: Aqui vamos a realizar el codigo para hacer web-scraping para una sola pag, 
   # posteriormente haremos un loop para el caso especifico del problem set que hay 
@@ -205,13 +205,11 @@
   
   summary(geih2018$y_total_m_imputada) # Se mantiene una distribución original bastante similar
   
-  summary(geih2018$Labor.Income.DANE) # Se mantiene una distribución original bastante similar
+  summary(geih2018$Labor.Income.DANE) 
   
   # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
 
   ##### Renombrar variables (Yo borraria esta subsección) #####  
-  
-
   
   geih2018<-geih2018 %>% 
     rename(inglab=p6500)
@@ -275,7 +273,7 @@
   db_geih2018 <- geih2018 %>% 
   select(directorio, secuencia_p, orden, # Variables de ID
          clase, estrato1, age, maxEducLevel, sex, # Demograficas
-         Labor.Income.DANE, y_total_m_imputada,
+         Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
          inglab, w, # Las que yo borraria
@@ -319,11 +317,11 @@
   
   ### Boxplot con ingreso laboral mensual
   
-  ylim1 = boxplot.stats(db_geih2018$y_total_m_imputada)$stats[c(1, 5)]
+  ylim1 = boxplot.stats(db_geih2018$Labor.Income)$stats[c(1, 5)]
   
   db_geih2018 %>% 
     ggplot(aes(x=age, 
-               y=y_total_m_imputada, 
+               y=Labor.Income, 
                fill= sex)) + 
     geom_boxplot(alpha=0.3,
                  outlier.shape = NA) +
@@ -363,7 +361,6 @@
     theme_minimal()
   
   # Se ve mas clara la relacion cuadratica que queremos encontrar
-  
   
   ##### REVISAR ESTE CHUNK Creación de una variables categórica para rangos de edad #####
   
@@ -407,7 +404,7 @@
   stargazer(reg1,type="text")
 
   reg1 <- lm(Log.Hourly.Wage ~ age + age2,
-             data = db_geih2018)
+             data = db_geih2018) # Dejo actualizacion del codigo
   
   summary(reg1)
   
@@ -443,12 +440,6 @@
   coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
                  sample_coef_x2, sample_erstd_x2)
   
-<<<<<<< HEAD
-  ## Combinar los resultados en una tabla 
-=======
-  ### Combinación de los resultados en una tabla 
->>>>>>> d71081898488654277613a48765793c6eec64e6c
-  
   means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
                   mean(sample_coef_x2))
   erstd.boots = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
@@ -480,8 +471,9 @@
                    "2.5 %", "97.5 %")
   
   #---5. Regresión2: The gender earnings GAP ########################################################################
-<<<<<<< HEAD
-  reg2 <- lm(Hourly.wage.DANE ~ sex, data = db_geih2018) #definir si se correràn con Hourly.wage.DANE o Hourly.wage
+
+  
+  reg2 <- lm(Hourly.wage ~ sex, data = db_geih2018) #definir si se correràn con Hourly.wage.DANE o Hourly.wage
   summary(reg2)
   stargazer(reg2,type="text")
   
@@ -552,8 +544,6 @@
                    "2.5 %", "97.5 %")
   d
   
-
-  
   
   ## female
   Tabla_fem$age2 <- Tabla_fem$age*Tabla_fem$age
@@ -618,18 +608,15 @@
                    "2.5 %", "97.5 %")
   d
   
-=======
   
   reg2 <- lm(w ~ sex, data = db_geih2018) # De nuevo, aqui es e log del salario
   summary(reg2)
   stargazer(reg2,type="text")
   
-  # actualizo el codigo con la nueva variable de ingreso
   
   reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
   summary(reg2)
   stargazer(reg2,type="text")
->>>>>>> d71081898488654277613a48765793c6eec64e6c
   
   #---6 Predicting Earnings ############################################################
   
