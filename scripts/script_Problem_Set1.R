@@ -169,6 +169,7 @@
   
   summary(geih2018$Labor.Income.DANE) # No contamos con NAs
   
+  
   Zeros <- geih2018 %>% 
     filter(Labor.Income == 0) # 323 observaciones cuentan con ingresos igual a 0
   
@@ -193,8 +194,6 @@
   
   # En promedio, sin el ingreso en especie, coincide con la variable y_total_m
   
-  # Recomiendo usar y_total_m para los cálculos de ingreso laboral
-  
   summary(geih2018$y_total_m)
   
   # Cuenta con 1778 NAs, es decir, 10% de la muestra. 
@@ -202,7 +201,6 @@
   # Sigue siendo muy alto como para imputar
   
   # Sin embargo, se crea una variable adicional imputada por la mediana 
-  
   
   ##### Manejo de NAs #####
   
@@ -223,9 +221,13 @@
   
   summary(geih2018$y_total_m_imputada) # Se mantiene una distribución original bastante similar
   
-
+  summary(geih2018$Labor.Income.DANE) # Se mantiene una distribución original bastante similar
   
-  ## Renombrar variables 
+  # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
+
+  ####### Renombrar variables (Yo borraria esta subsección) #####  
+  
+
   
   geih2018<-geih2018 %>% 
     rename(inglab=p6500)
@@ -241,17 +243,54 @@
     mutate(inglab = case_when(
       !is.na(ingtot) ~ ingtot,
       TRUE ~ inglab
-    )) # Yo no borraria esta parte bajo el nuevo ingreso
+    ))
   
-  ## Crear la variable w, salario por hora, expresada como cifra entera en miles
+  ####### Creación variable de ingreso laboral por hora #####
+  
   geih2018<-geih2018 %>% 
-    mutate(w=inglab %/%(hoursWorkUsual*4))
+    mutate(w=inglab %/%(hoursWorkUsual*4)) 
   
   sum(is.na(geih2018$w))
   
-  ##Seleccionar las variables con las que se trabajará
+ Zoom <- geih2018 %>% 
+   select(hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked)
+  # revisando las variables de horas trabajadas de la base, deberíamos trabajar con total hours worked
+ # incluye las work usual más de las del segundo trabajo
+
+ summary(Zoom)
+ 
+ # Por la distribucion se asume que son horas semanales trabajadas
+ 
+ ### Se calcula el ingreso laboral por semana
+ 
+ geih2018 <- geih2018 %>% 
+   mutate(Weekly.Wage = round(y_total_m_imputada/4),
+          Weekly.Wage.DANE = round(Labor.Income.DANE/4)
+   )
+ 
+ ### Se calcula el ingreso laboral por hora
+ 
+ geih2018 <- geih2018 %>% 
+   mutate(Hourly.Wage = round(Weekly.Wage/(totalHoursWorked)),
+          Hourly.Wage.DANE = round(Weekly.Wage.DANE/totalHoursWorked)
+          )
+ 
+ Zoom <- geih2018 %>% 
+   select(y_total_m_ha, 
+          Hourly.Wage,
+          Hourly.Wage.DANE)
+ 
+ summary(Zoom) # Se compara las distribuciones de las 3 variables
+
+ # Distribucion bastante similar excepto por el maximo de la del DANE
+ 
+ # Trabajaria con Hourly.Wage y Hourly.Wage.DANE para las regresiones
+ 
+  ####### Seleccionar las variables con las que se trabajará #####
   
-  db_geih2018 <- geih2018 %>% select(directorio, secuencia_p, orden, clase, estrato1, age, w,inglab, ingtot, maxEducLevel, ocu, sex)
+  db_geih2018 <- geih2018 %>% 
+  select(directorio, secuencia_p, orden, clase, estrato1, age, 
+         w,inglab, ingtot, maxEducLevel, ocu, sex)
   str(db_geih2018)
   
   ## Convertir variables texto a factor
