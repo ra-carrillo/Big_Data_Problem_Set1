@@ -129,7 +129,7 @@
   
   # En nuestra base de datos hay 3.421.720 datos faltantes
   
-  ## Revisiones aleatorias con anexos DANE
+  ##### Revisiones aleatorias con anexos DANE #####
   
   # Población Total: 8.164.164
   
@@ -152,28 +152,74 @@
   geih2018<- data %>% 
     filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
   
-  ## Cálculo de la variable de ingreso laboral según la metodología de pobreza del DANE
+  ##### Cálculo de la variable de ingreso laboral según la metodología de pobreza del DANE #####
   # Revisar documento metodológico carpeta docs
   
   geih2018 <- geih2018 %>% 
     rowwise() %>% 
     mutate( 
-      Labor.Income = sum(impa, # ingreso primera actividades
+      Labor.Income.DANE = sum(impa, # ingreso primera actividad
                          impaes, # ingreso pa imputado por DANE
                          ie, # ingreso en especie
-                         iees,# ingreso en especie imputado
+                         iees,# ingreso en especie imputado por DANE
                          isa, # ingreso por segunda actividad
-                         isaes, # ingreso por sa imputado
+                         isaes, # ingreso por sa imputado por DANE
                          na.rm = TRUE)
     )
   
-  
-  summary(geih2018$Labor.Income) # No contamos con NAs
+  summary(geih2018$Labor.Income.DANE) # No contamos con NAs
   
   Zeros <- geih2018 %>% 
     filter(Labor.Income == 0) # 323 observaciones cuentan con ingresos igual a 0
   
   # Corresponde al 1% de la muestra
+  
+  ### Cálculo del Ingreso laboral sin variables imputadas por el DANE
+  
+  geih2018 <- geih2018 %>% 
+    rowwise() %>% 
+    mutate( 
+      Labor.Income.Alt = sum(impa, # ingreso primera actividades
+                         #ie, # ingreso en especie
+                         isa, # ingreso por segunda actividad
+                         na.rm = TRUE),
+      Labor.Income.Alt = case_when(
+        is.na(y_total_m) == TRUE ~ y_total_m,
+        TRUE ~ Labor.Income.Test
+      )
+    )
+  
+  summary(geih2018$Labor.Income.Alt) 
+  
+  # En promedio, sin el ingreso en especie, coincide con la variable y_total_m
+  
+  # Recomiendo usar y_total_m para los cálculos de ingreso laboral
+  
+  summary(geih2018$y_total_m)
+  
+  # Cuenta con 1778 NAs, es decir, 10% de la muestra. 
+  
+  #Sigue siendo muy alto como para imputar
+  
+  # Sin embargo, se pueden hacer dos abordajes para imputar esos valores faltantes
+  # Median imputation y KNN
+  
+  ##### Manejo de NAs #####
+  
+  ### Imputación con la mediana (No se usa la media dado que está arrastrada hacia arriba por valores muy altos)
+  
+  Median = median(geih2018$y_total_m,
+                  na.rm = TRUE)
+  
+  geih2018 <- geih2018 %>% 
+    mutate(y_total_m_imputada = 
+             case_when(
+               is.na(y_total_m) == TRUE ~ Median,
+               TRUE ~ y_total_m
+             )
+           )
+
+  
   
   
   ## Renombrar variables 
