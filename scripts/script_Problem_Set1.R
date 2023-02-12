@@ -651,4 +651,177 @@
   
   #---6 Predicting Earnings ############################################################
   
+  ##### a) Partiendo la base de datos en dos sub muestras de entrenamiento y evaluacion ##### 
+  
+  ### Revisar distribución de la variable objetivo
+  
+  db_geih2018 %>% 
+    ggplot(aes(x = Log.Hourly.Wage)) + 
+    geom_histogram(alpha = 0.5)
+  
+  # Se observa un leve sesgo en la distribucion de ingresos, por lo que la participacion se estratifica para asegurar una representacion adecuada
+  
+  ### Se hace la partición de la base
+  
+  set.seed(2403)
+  
+  GEIH_Split <- db_geih2018 %>% 
+    select(Log.Hourly.Wage, age, age2) %>% 
+    na.omit() %>%
+    initial_split(prop = 0.70,
+                  strata = Log.Hourly.Wage)
+  
+  GEIH_Training <- training(GEIH_Split)
+  
+  GEIH_Test <- testing(GEIH_Split)
+  
+  
+  ##### b) Estimación modelos y evaluación de ajuste ##### 
+  
+  #### Primer modelo (Log(Wage) = Age + Age^2) #####
+  
+  ### Se prepara la base de entrenamiento y se especifica la forma funcional
+  
+  GEIH_Recipe <- 
+    recipe(Log.Hourly.Wage ~ ., 
+           GEIH_Training)
+  
+  GEIH_Recipe
+  
+  ### Se especifica el modelo
+  
+  GEIH_Spec <- 
+    linear_reg() %>% 
+    set_engine("lm") %>% 
+    set_mode("regression")
+  
+  ### Workflow
+  
+  GEIH_Wflow <- workflow(GEIH_Recipe,
+                         GEIH_Spec)
+  
+  ### Se corre el modelo
+  
+  GEIH_Fit <- fit(GEIH_Wflow,
+                  GEIH_Training
+  )
+  
+  GEIH_Fit
+  
+  tidy(GEIH_Fit,
+       exponentiate = TRUE)
+  
+  Training_Metrics <- glance(GEIH_Fit)
+  
+  ### Métricas de evaluación
+  
+  GEIH_Test_Res <- predict(
+    GEIH_Fit, 
+    GEIH_Test %>% 
+      select(-Log.Hourly.Wage)
+  )
+  
+  GEIH_Test_Res <- bind_cols(GEIH_Test_Res, 
+                             GEIH_Test %>% 
+                               select(Log.Hourly.Wage))
+  
+  GEIH_Test_Res
+  
+  
+  ggplot(GEIH_Test_Res, 
+         aes(x = Log.Hourly.Wage, 
+             y = .pred)) + 
+    # Create a diagonal line:
+    geom_abline(lty = 2) + 
+    geom_point(alpha = 0.5) + 
+    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
+    # Scale and size the x- and y-axis uniformly:
+    coord_obs_pred()
+  
+  GEIH_Metrics <- metric_set(rmse, 
+                             rsq, 
+                             mae)
+  
+  GEIH_Metrics(GEIH_Test_Res, 
+               truth = Log.Hourly.Wage, 
+               estimate = .pred)
+  
+  
+  
+  
+  
+  #### Primer modelo (Log(Wage) = Sex) #####
+  
+  ### Se prepara la base de entrenamiento y se especifica la forma funcional
+  
+  GEIH_Recipe <- 
+    recipe(Log.Hourly.Wage ~ sex, 
+           GEIH_Training)
+  
+  GEIH_Recipe
+  
+  ### Se especifica el modelo
+  
+  GEIH_Spec <- 
+    linear_reg() %>% 
+    set_engine("lm") %>% 
+    set_mode("regression")
+  
+  ### Workflow
+  
+  GEIH_Wflow <- workflow(GEIH_Recipe,
+                         GEIH_Spec)
+  
+  ### Se corre el modelo
+  
+  GEIH_Fit <- fit(GEIH_Wflow,
+                  GEIH_Training
+  )
+  
+  GEIH_Fit
+  
+  tidy(GEIH_Fit,
+       exponentiate = TRUE)
+  
+  Training_Metrics <- glance(GEIH_Fit)
+  
+  ### Métricas de evaluación
+  
+  GEIH_Test_Res <- predict(
+    GEIH_Fit, 
+    GEIH_Test %>% 
+      select(-Log.Hourly.Wage)
+  )
+  
+  GEIH_Test_Res <- bind_cols(GEIH_Test_Res, 
+                             GEIH_Test %>% 
+                               select(Log.Hourly.Wage))
+  
+  GEIH_Test_Res
+  
+  
+  ggplot(GEIH_Test_Res, 
+         aes(x = Log.Hourly.Wage, 
+             y = .pred)) + 
+    # Create a diagonal line:
+    geom_abline(lty = 2) + 
+    geom_point(alpha = 0.5) + 
+    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
+    # Scale and size the x- and y-axis uniformly:
+    coord_obs_pred()
+  
+  GEIH_Metrics <- metric_set(rmse, 
+                             rsq, 
+                             mae)
+  
+  GEIH_Metrics(GEIH_Test_Res, 
+               truth = Log.Hourly.Wage, 
+               estimate = .pred)
+  
+  
+  
+  
+  
+  
+  
   
