@@ -92,7 +92,6 @@
   getwd()
   
   ## Elegir el directorio 
-  
   setwd("C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/data")
   
   ## Guardar data
@@ -136,6 +135,18 @@
   geih2018<- data %>% 
     filter(dominio == 'BOGOTA' & age >= 18 & ocu == 1)
   
+  #Inspección variables ingreso de la base ded atos
+  
+  summary(geih2018$y_ingLab_m) #	labor income salaried - nominal monthly - all occ. (includes tips and commission
+  summary(geih2018$y_total_m) # income salaried + independents total - nominal monthly
+
+  #Porcentaje de valores perdidos
+  6650/16542
+  1778/16542
+  
+  #Imputar datos 
+  
+  #Construccion variable ingreso laboral (Metodología DANE)
   ##### Cálculo de la variable de ingreso laboral según la metodología de pobreza del DANE #####
   # Revisar documento metodológico carpeta docs
   
@@ -151,14 +162,21 @@
                          na.rm = TRUE)
     )
   
-  summary(geih2018$Labor.Income.DANE) # No contamos con NAs
+  summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
+  summary(geih2018$Labor.Income.DANE ) # Variable construida No contamos con NAs
   
-  
+  #Visualizar cuantas observaciones tienen ingresos iguales a 0
   Zeros <- geih2018 %>% 
+<<<<<<< HEAD
     filter(Labor.Income.DANE == 0) # 323 observaciones cuentan con ingresos igual a 0
+=======
+    filter(Labor.Income.DANE== 0) # 323 observaciones cuentan con ingresos igual a 0
+>>>>>>> 8ce00adba4b200f06b17797595e4e7616c245b7f
   
+  323/16542
   # Corresponde al 1% de la muestra
   
+  # Replicar variable "y_total_m"
   ### Cálculo del Ingreso laboral sin variables imputadas por el DANE
   
   geih2018 <- geih2018 %>% 
@@ -173,8 +191,13 @@
         TRUE ~ Labor.Income.Test
       )
     )
+<<<<<<< HEAD
   
   summary(geih2018$Labor.Income.Test) 
+=======
+  summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
+  summary(geih2018$Labor.Income.Alt) # Replica de la variable base datos (Incluye NAs)
+>>>>>>> 8ce00adba4b200f06b17797595e4e7616c245b7f
   
   # En promedio, sin el ingreso en especie, coincide con la variable y_total_m
   
@@ -210,7 +233,8 @@
   # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
 
   ##### Renombrar variables (Yo borraria esta subsección) #####  
-  
+
+#-----------------------------------------------------------------------------  
   geih2018<-geih2018 %>% 
     rename(inglab=p6500)
   
@@ -226,13 +250,22 @@
       !is.na(ingtot) ~ ingtot,
       TRUE ~ inglab
     ))
-  
+#-------------------------------------------------------------------------------  
   ##### Creación variable de ingreso laboral por hora #####
   
   geih2018<-geih2018 %>% 
     mutate(w=inglab %/%(hoursWorkUsual*4)) ## YO BORRARIA ESTO
   
+<<<<<<< HEAD
   sum(is.na(geih2018$w)) # Y ESTO. PARA EMPEZAR A LIMPIAR Y ESTANDARIZAR EL CODIGO
+=======
+  sum(is.na(geih2018$w))
+ #Observación: No se tuvieron encuenta las horas trabajadas en la segunda actividad laboral
+  # se sugiere utilizar horas total
+  # ver abajo 
+  
+  #-----------------------------------------------------------------------
+>>>>>>> 8ce00adba4b200f06b17797595e4e7616c245b7f
   
  Zoom <- geih2018 %>%
    select(hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked)
@@ -241,7 +274,6 @@
  # incluye las work usual más de las del segundo trabajo
 
  summary(Zoom)
- 
  # Por la distribucion se asume que son horas semanales trabajadas
  
  ### Se calcula el ingreso laboral por semana
@@ -250,6 +282,8 @@
    mutate(Weekly.Wage = round(y_total_m_imputada/4),
           Weekly.Wage.DANE = round(Labor.Income.DANE/4)
    )
+ summary( geih2018  $Weekly.Wage)
+ summary( geih2018  $Weekly.Wage.DANE)
  
  ### Se calcula el ingreso laboral por hora
  
@@ -277,7 +311,7 @@
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         inglab, w, # Las que yo borraria
+         #inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
    
