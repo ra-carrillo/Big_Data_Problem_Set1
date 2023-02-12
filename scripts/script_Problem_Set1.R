@@ -227,7 +227,7 @@
   
   # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
 
-  ####### Renombrar variables (Yo borraria esta subsección) #####  
+  ##### Renombrar variables (Yo borraria esta subsección) #####  
   
 
   
@@ -247,7 +247,7 @@
       TRUE ~ inglab
     ))
   
-  ####### Creación variable de ingreso laboral por hora #####
+  ##### Creación variable de ingreso laboral por hora #####
   
   geih2018<-geih2018 %>% 
     mutate(w=inglab %/%(hoursWorkUsual*4)) 
@@ -288,7 +288,7 @@
  
  # Trabajaria con Hourly.Wage y Hourly.Wage.DANE para las regresiones
  
-  ####### Seleccionar las variables con las que se trabajará #####
+  ##### Seleccionar las variables con las que se trabajará #####
   
   db_geih2018 <- geih2018 %>% 
   select(directorio, secuencia_p, orden, # Variables de ID
@@ -297,11 +297,9 @@
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
          inglab, w, # Las que yo borraria
-         formal, relab, regSalud, cotPension, sizeFirm # Variables laborales relevantes
+         formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
    
-
-  
   ## Convertir variables texto a factor
   
   y <- c("estrato1", "sex", "maxEducLevel")
@@ -409,7 +407,7 @@
   
   #---4. Regresión1: Profile Age-Wage #########################################################################
   
-  # Creacion de la variables necesarias para correr el modelo
+  ### Creacion de la variables necesarias para correr el modelo
   
   db_geih2018 <- db_geih2018 %>% 
     mutate(
@@ -417,9 +415,9 @@
       Log.Hourly.Wage = log(Hourly.Wage) # Log del salario por hora
     )
   
-  OLS_Data <- db_geih2018
+ ### Se corre el modelo por MCO
   
-  reg1 <- lm(log(w) ~ age + age2,# Aqui no deberia ser el logaritmo del salario por hora?
+  reg1 <- lm(w ~ age + age2,# Aqui no deberia ser el logaritmo del salario por hora?
              data = db_geih2018) # Por otro lado yo actualizaría a las nuevas variables de ingreso laboral
   
   summary(reg1)
@@ -433,7 +431,7 @@
   
   stargazer(reg1,type="text")
 
-  #Bootstrap
+  ### Bootstrap
   
   sample_coef_intercept <- NULL
   sample_coef_x1 <- NULL
@@ -463,7 +461,11 @@
   coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
                  sample_coef_x2, sample_erstd_x2)
   
+<<<<<<< HEAD
   ## Combinar los resultados en una tabla 
+=======
+  ### Combinación de los resultados en una tabla 
+>>>>>>> d71081898488654277613a48765793c6eec64e6c
   
   means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
                   mean(sample_coef_x2))
@@ -475,7 +477,7 @@
       erstdBoots = erstd.boots),4), 
     "simple", caption = "Coefficients in different models")
 
-  # Intervalos de confianza
+  ### Intervalos de confianza
   
   confint(reg1)
   a <-
@@ -496,6 +498,7 @@
                    "2.5 %", "97.5 %")
   
   #---5. Regresión2: The gender earnings GAP ########################################################################
+<<<<<<< HEAD
   reg2 <- lm(Hourly.wage.DANE ~ sex, data = db_geih2018) #definir si se correràn con Hourly.wage.DANE o Hourly.wage
   summary(reg2)
   stargazer(reg2,type="text")
@@ -568,6 +571,18 @@
   d
   
 
+=======
+  
+  reg2 <- lm(w ~ sex, data = db_geih2018) # De nuevo, aqui es e log del salario
+  summary(reg2)
+  stargazer(reg2,type="text")
+  
+  # actualizo el codigo con la nueva variable de ingreso
+  
+  reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
+  summary(reg2)
+  stargazer(reg2,type="text")
+>>>>>>> d71081898488654277613a48765793c6eec64e6c
   
   #---6 Predicting Earnings ############################################################
   
