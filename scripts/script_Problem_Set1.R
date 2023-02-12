@@ -40,7 +40,8 @@
          stargazer,
          ggplot2, 
          hrbrthemes,
-         tidymodels) # Tiene las herramientas para crear modelos de Machine learning
+         tidymodels,
+         caret,skimr) # Tiene las herramientas para crear modelos de Machine learning
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
@@ -192,7 +193,6 @@
       )
     )
 
-  
   summary(geih2018$Labor.Income.Test) 
   summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
 
@@ -227,37 +227,6 @@
   
   # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
 
-  ##### Renombrar variables (Yo borraria esta subsección) #####  
-
-#-----------------------------------------------------------------------------  
-  geih2018<-geih2018 %>% 
-    rename(inglab=p6500)
-  
-  ## Datos faltantes en la variable inglab
-  
-  sum(is.na(geih2018$inglab)) 
-  
-  ## Imputación de valores faltantes, los datos faltantes de la variable inglab 
-  #  se reemplazan por los de ingresos total (ingtot)
-  
-  geih2018<- geih2018 %>% 
-    mutate(inglab = case_when(
-      !is.na(ingtot) ~ ingtot,
-      TRUE ~ inglab
-    ))
-#-------------------------------------------------------------------------------  
-  ##### Creación variable de ingreso laboral por hora #####
-  
-  geih2018<-geih2018 %>% 
-    mutate(w=inglab %/%(hoursWorkUsual*4)) ## YO BORRARIA ESTO
-  
-  sum(is.na(geih2018$w)) # Y ESTO. PARA EMPEZAR A LIMPIAR Y ESTANDARIZAR EL CODIGO
-
- #Observación: No se tuvieron encuenta las horas trabajadas en la segunda actividad laboral
-  # se sugiere utilizar horas total
-  # ver abajo 
-  
-  #-----------------------------------------------------------------------
  Zoom <- geih2018 %>%
    select(hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked)
   
@@ -302,7 +271,6 @@
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         #inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
    
@@ -375,9 +343,9 @@
   ### Ingreso laboral mensual 
   
   db_geih2018 %>% 
-    filter(y_total_m_imputada <= 20000000) %>%  
+    filter(Labor.Income <= 20000000) %>%  
     ggplot(aes(x=age, 
-               y = y_total_m_imputada,
+               y = Labor.Income,
                shape = sex,
                color = sex)
     ) + 
@@ -410,7 +378,7 @@
   #print(xtable(Tabla1), include.rownames = FALSE)
   
   
-  #---4. Regresión1: Profile Age-Wage #########################################################################
+  #---4. Regresión1: Profile Age-Wage 
   
   ### Creacion de la variables necesarias para correr el modelo
   
