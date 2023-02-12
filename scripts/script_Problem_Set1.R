@@ -40,7 +40,8 @@
          stargazer,
          ggplot2, 
          hrbrthemes,
-         tidymodels) # Tiene las herramientas para crear modelos de Machine learning
+         tidymodels,
+         fastDummies) # Tiene las herramientas para crear modelos de Machine learning
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
@@ -651,16 +652,18 @@
   ##### Pre-procesamiento de la base y ED#####
   
   Model_Data <- db_geih2018 %>% 
-    select(clase, "Estrato" = estrato1, age, age2, "sex.old" = sex, maxEducLevel, 
+    select("Class" = clase, "Strata" = estrato1, "Age" = age, 
+           "Age_Sqrt"= age2, "sex.old" = sex, 
+           "Max.Educ.Level" = maxEducLevel, 
            Hourly.Wage, Hourly.Wage.DANE, 
-           formal, relab, oficio, cotPension, #regSalud,
+           "Formal" = formal, relab, "Job.Type"= oficio, cotPension, #regSalud,
            sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
     mutate(
       Sex = case_when(
         sex.old == 1 ~ "Man",
         sex.old == 0 ~ "Women"
         ),
-      Work.Type  = case_when(
+      Worker.Type  = case_when(
         relab == 1 ~ "Private Employee",
         relab == 2 ~ "Goverment Employee",
         relab == 3 ~ "Household Employee",
@@ -668,19 +671,23 @@
         relab == 5 ~ "Employer",
         relab == 6 ~ "No Rem Family Employee",
         relab == 7 ~ "No Rem Private Employee",
-        relab == 8 ~ "Jornaler"
+        relab == 8 ~ "Jornaler",
+        relab == 9 ~ "Other"
       ),
       Firm.Size  = case_when(
         sizeFirm == 1 ~ "Self Employed",
         sizeFirm == 2 ~ "2-5 Workers",
         sizeFirm == 3 ~ "6-10 Workers",
         sizeFirm == 4 ~ "11-50 Workers",
-        sizeFirm == 5 ~ ">50 Workers")
+        sizeFirm == 5 ~ ">50 Workers"),
+      Job.Type = as.character(Job.Type),
+      Max.Educ.Level = as.character(Max.Educ.Level)
+      
       )
   
   summary(Model_Data)
   
-  ### Revisar distribución de la variable objetivo
+  ###  Revisar distribución de la variable objetivo   #####  
   
   ## Computada e imputada por nosotros
   
@@ -719,7 +726,7 @@
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
   GEIH_Recipe_M1 <- 
-    recipe(Log.Hourly.Wage ~ age + age2, 
+    recipe(Log.Hourly.Wage ~ Age + Age_Sqrt, 
            GEIH_Training)
   
   GEIH_Recipe_M1
@@ -752,7 +759,7 @@
   tidy(GEIH_Fit_M1,
        exponentiate = TRUE)
   
-  Training_Metrics_M1 <- glance(GEIH_Fit)
+  Training_Metrics_M1 <- glance(GEIH_Fit_M1)
   
   ### Métricas de evaluación
   
@@ -861,16 +868,67 @@
   
   #### Tercer modelo (Log(Wage) = Sex + Controles (FWL)) #####
   
-  ### Se estima el modelo MCO original
+  FWL_Model_Data <- dummy_cols(GEIH_Training, 
+                     select_columns = c("Firm.Size",
+                                        "Max.Educ.Level",
+                                        "Job.Type",
+                                        "Worker.Type")
+                     )
+  
+  FWL_Model_Data[sapply(FWL_Model_Data, is.character)] <- lapply(FWL_Model_Data[sapply(FWL_Model_Data, is.character)], factor)
+  
+  OLS1 <- lm(Log.Hourly.Wage ~ Sex + Age + Age_Sqrt + 
+               `Firm.Size_2-5 Workers` + `Firm.Size_6-10 Workers`+
+               `Firm.Size_11-50 Workers` + `Firm.Size_>50 Workers` +
+               Formal + `Worker.Type_Employer` + `Worker.Type_Goverment Employee` +
+               `Worker.Type_Household Employee` + `Worker.Type_Self Employed` +
+               `Worker.Type_No Rem Family Employee` + `Worker.Type_No Rem Private Employee` +
+               `Worker.Type_Private Employee`, FWL_Model_Data)
+  
+  stargazer(OLS1, type = "text")
+  
+  summary(FWL_Model_Data)
+  
+  
+  Test <- FWL_Model_Data %>% 
+    mutate(Resid.Sex = lm(sex.old ~  Age + Age_Sqrt + 
+                                       `Firm.Size_2-5 Workers` + `Firm.Size_6-10 Workers`+
+                                       `Firm.Size_11-50 Workers` + `Firm.Size_>50 Workers` +
+                                       Formal + `Worker.Type_Employer` + `Worker.Type_Goverment Employee` +
+                                       `Worker.Type_Household Employee` + `Worker.Type_Self Employed` +
+                                       `Worker.Type_No Rem Family Employee` + `Worker.Type_No Rem Private Employee` +
+                                       `Worker.Type_Private Employee`)$residuals) 
+  
+  #Residuals of Sex ~ controls
+  
+  OLS2 <- lm(Log.Hourly.Wage ~ Resid.Sex,
+             Test)
+  
+  stargazer(OLS1, 
+            OLS2,
+            type = "text")
+  
+  summary(GEIH_Training)
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
-  GEIH_Recipe <- 
-    recipe(Log.Hourly.Wage ~ Sex + maxEducLevel + age + age2 + Work.Type + formal + sizeFirm + oficio, 
+  GEIH_Recipe_M3 <- 
+    recipe(Log.Hourly.Wage ~ Sex + Max.Educ.Level + Age + Age_Sqrt + 
+             Worker.Type + Formal + Firm.Size + Job.Type, 
            GEIH_Training) %>% 
-    step_string2factor(Sex, maxEducLevel, Work.Type, formal)
+    step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, 
+               Job.Type)
   
-  GEIH_Recipe
+  GEIH_Recipe_M3
+  
+  ## Se revisa que la base se vaya a preparar correctamente
+  
+  GEIH_Prep <- prep(GEIH_Recipe_M3)
+
+  bake(GEIH_Prep, 
+       new_data = NULL) %>% 
+    str()
+  
   
   ### Se especifica el modelo
   
@@ -881,38 +939,35 @@
   
   ### Workflow
   
-  GEIH_Wflow <- workflow(GEIH_Recipe,
+  GEIH_Wflow <- workflow(GEIH_Recipe_M3,
                          GEIH_Spec)
   
   ### Se corre el modelo
   
-  GEIH_Fit <- fit(GEIH_Wflow,
+  GEIH_Fit_M3 <- fit(GEIH_Wflow,
                   GEIH_Training
   )
   
-  GEIH_Fit
+  GEIH_Fit_M3
   
-  tidy(GEIH_Fit,
+  tidy(GEIH_Fit_M3,
        exponentiate = TRUE)
   
-  Training_Metrics <- glance(GEIH_Fit)
+  Training_Metrics_M3 <- glance(GEIH_Fit_M3)
   
   ### Métricas de evaluación
   
-  GEIH_Test_Res <- predict(
-    GEIH_Fit, 
+  GEIH_Test_Res_M3 <- predict(
+    GEIH_Fit_M3, 
     GEIH_Test %>% 
       select(-Log.Hourly.Wage)
   )
   
-  GEIH_Test_Res <- bind_cols(GEIH_Test_Res, 
+  GEIH_Test_Res_M3 <- bind_cols(GEIH_Test_Res_M3, 
                              GEIH_Test %>% 
                                select(Log.Hourly.Wage))
   
-  GEIH_Test_Res
-  
-  
-  ggplot(GEIH_Test_Res, 
+  ggplot(GEIH_Test_Res_M3, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
@@ -926,88 +981,13 @@
                              rsq, 
                              mae)
   
-  GEIH_Metrics(GEIH_Test_Res, 
+  Out_Sample_Metrics_M3 <- GEIH_Metrics(GEIH_Test_Res_M3, 
                truth = Log.Hourly.Wage, 
                estimate = .pred)
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  ### Se prepara la base de entrenamiento y se especifica la forma funcional
-  
-  GEIH_Recipe_M2 <- 
-    recipe(Log.Hourly.Wage ~ Sex, 
-           GEIH_Training) %>% 
-    step_string2factor(Sex)
-  
-  GEIH_Recipe_M2
-  
-  ### Se especifica el modelo
-  
-  GEIH_Spec <- 
-    linear_reg() %>% 
-    set_engine("lm") %>% 
-    set_mode("regression")
-  
-  ### Workflow
-  
-  GEIH_Wflow <- workflow(
-    GEIH_Recipe_M2,
-    GEIH_Spec
-  )
-  
-  GEIH_Wflow
-  
-  ### Se corre el modelo
-  
-  GEIH_Fit_M2 <- fit(GEIH_Wflow,
-                     GEIH_Training
-  )
-  
-  GEIH_Fit_M2
-  
-  tidy(GEIH_Fit_M2,
-       exponentiate = TRUE)
-  
-  Training_Metrics_M2 <- glance(GEIH_Fit_M2)
-  
-  ### Métricas de evaluación
-  
-  GEIH_Test_Res_M2 <- predict(
-    GEIH_Fit_M2, 
-    GEIH_Test %>% 
-      select(-Log.Hourly.Wage)
-  )
-  
-  GEIH_Test_Res_M2 <- bind_cols(GEIH_Test_Res_M2, 
-                                GEIH_Test %>% 
-                                  select(Log.Hourly.Wage))
-  
-  
-  ggplot(GEIH_Test_Res_M2, 
-         aes(x = Log.Hourly.Wage, 
-             y = .pred)) + 
-    # Create a diagonal line:
-    geom_abline(lty = 2) + 
-    geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
-    # Scale and size the x- and y-axis uniformly:
-    coord_obs_pred()
-  
-  GEIH_Metrics <- metric_set(rmse, 
-                             rsq, 
-                             mae)
-  
-  Out_Sample_Metrics_M2 <- GEIH_Metrics(GEIH_Test_Res_M2, 
-                                        truth = Log.Hourly.Wage, 
-                                        estimate = .pred)
-  
+  Out_Sample_Metrics_M1
+  Out_Sample_Metrics_M2
+  Out_Sample_Metrics_M3
   
   
   #### Intento conjunto ####
