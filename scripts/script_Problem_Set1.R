@@ -360,19 +360,31 @@
   
   db_geih2018 <- db_geih2018 %>% 
     mutate(
-      age2 = age^2, # Edad al cuadrado
+      age2 = age*age, # Edad al cuadrado
       Log.Hourly.Wage = log(Hourly.Wage),
-      Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE) # Log del salario por hora
-    )
-  
+      Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE), # Log del salario por hora
+      Log.Month.Wage = log(Labor.Income))  # Log del salario mensual
+
+  View(db_geih2018$Labor.Income)
  ### Regresión 1: Estimación por MCO
+  
+  reg0 <- lm(Log.Month.Wage  ~ age + age2,
+             data = db_geih2018)
+  summary(reg0)
+  
+  stargazer(reg0,type="text")
+  
+  summary(db_geih2018$Log.Month.Wage)
   
   reg1 <- lm(Log.Hourly.Wage ~ age + age2,
              data = db_geih2018) 
   
   summary(reg1)
+  
   stargazer(reg1,type="text")
+  
   summary(db_geih2018$Log.Hourly.Wage)
+  
   #Para obtener el código de la tabla en latex
 
   stargazer(reg1, header=FALSE,
@@ -427,43 +439,46 @@
   results <- boot(db_geih2018, eta_mod2_fn,R=1000)
   results
   
-  # Bootstrap para los obtener errores estándar
+  # Bootstrap 
   eta_fn<-function(data,index){
     coef(lm(Log.Hourly.Wage ~ age + age2, data = db_geih2018, subset = index)) 
-  }[2] #obtiene el segundo coeficiente de la regresión lineal
+  } 
   
   eta_fn(db_geih2018,1:nrow(db_geih2018))
   
   boot <- boot(db_geih2018, eta_fn, R = 1000)
   coef_boot <- boot$t0
   SE <- apply(boot$t,2,sd)
+  boot
+  coef_boot
   
-  # Crear un dataframe con las x y las y
+  # Matriz con las X y las Y
   
   x <- seq(18, 94, length.out = 100)
   y <- coef_boot[1] + coef_boot[2] * x + coef_boot[3] * x^2
-  y_i <- (coef_boot[1]-1.96*SE[1]) + (coef_boot[2]-1.96*SE[2])*x + 
+  y_inf <- (coef_boot[1]-1.96*SE[1]) + (coef_boot[2]-1.96*SE[2])*x + 
     (coef_boot[3]-1.96*SE[3])*x^2
-  y_s <- (coef_boot[1]+1.96*SE[1]) + (coef_boot[2]+1.96*SE[2])*x + 
+  y_sup <- (coef_boot[1]+1.96*SE[1]) + (coef_boot[2]+1.96*SE[2])*x + 
     (coef_boot[3]+1.96*SE[3])*x^2
   
-  df <- data.frame(x, y, y_i, y_s)
+  df <- data.frame(x, y, y_inf, y_sup)
   
   # Graficar la función
   
   graph <- ggplot(df, aes(x = x, y = y)) +
     geom_line(aes(color = "Estimado"), size = 1) +
-    geom_line(aes(x = x, y = y_i, color = "Límite inferior"), linetype = "dotted", size = 1) +
-    geom_line(aes(x = x, y = y_s, color = "Límite superior"), linetype = "dotted", size = 1) +
-    scale_color_manual(name = "", values = c("Estimado" = "blue", "Límite inferior" = "red", "Límite superior" = "red")) +
+    geom_line(aes(x = x, y = y_inf, color = "Intervalo inferior"), linetype = "dotted", size = 1) +
+    geom_line(aes(x = x, y = y_sup, color = "Intervalo superior"), linetype = "dotted", size = 1) +
+    scale_color_manual(name = "", values = c("Estimado" = "green3", "Intervalo inferior" = "red", "Intervalo superior" = "red")) +
     labs(x = "Edad", y = "Log(Salario por hora)") +
     theme_classic() +
     scale_x_continuous(limits = c(18, 94)) +
-    geom_vline(xintercept = 43, linetype = "dotted") +
+    geom_vline(xintercept = 39, linetype = "dotted") +
     theme(legend.position = "bottom")
   
   ggsave(graph, filename = "C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/views/Rplot4.png", height = 5, width = 6)
-
+  
+  
 
   #Revisar
   
