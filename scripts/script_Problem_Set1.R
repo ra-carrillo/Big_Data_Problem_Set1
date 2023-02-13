@@ -41,7 +41,8 @@
          ggplot2, 
          hrbrthemes,
          tidymodels,
-         fastDummies) # Tiene las herramientas para crear modelos de Machine learning
+         fastDummies, # Tiene las herramientas para crear modelos de Machine learning
+         boot) 
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
@@ -383,8 +384,6 @@
             intercept.bottom=TRUE,
             df = FALSE
             )
-  
-  
   ### Bootstrap
   
   sample_coef_intercept <- NULL
@@ -424,6 +423,7 @@
       bootstrap = means.boots,
       erstdBoots = erstd.boots),4), 
     "simple", caption = "Coefficients in different models")
+  
 
   ### Intervalos de confianza
   
