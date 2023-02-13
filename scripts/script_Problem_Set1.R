@@ -542,12 +542,42 @@
   colnames(d) <- c("2.5 %", "97.5 %",
                    "2.5 %", "97.5 %")
   
-  #---5. Regresión2: The gender earnings GAP ########################################################################
-
+  #---5. Regresión 2: The gender earnings GAP 
   
-  reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
+  #-----------------------------------------------------------------------------
+  #Creación variable mujer=1 y hombre=0
+  table(db_geih2018$sex)
+  db_geih2018 <- db_geih2018 %>% 
+    mutate(
+      fem=fem<-ifelse(sex==0,1,0))  
+  
+  table(db_geih2018$fem)
+  db_geih2018$fem
+
+  db_geih2018$fem <- factor(db_geih2018$fem, levels=c(0, 1), labels=c("Hombre", "Mujer"))
+  db_geih2018$fem
+  
+  table(db_geih2018$fem)
+  #-----------------------------------------------------------------------------
+  
+  reg2 <- lm(Log.Hourly.Wage ~ fem, data = db_geih2018)
+  
   summary(reg2)
+  
   stargazer(reg2,type="text")
+  
+  #Para obtener el código de la tabla en latex
+  
+  stargazer(reg2, header=FALSE,
+            digits=2, single.row=FALSE,
+            intercept.bottom=TRUE,
+            df = FALSE
+  )
+  
+  
+#AQUI VOY
+  
+  
   
   ## Bootstrap por género
   Tabla_men <- db_geih2018 %>% filter(sex == 1)
