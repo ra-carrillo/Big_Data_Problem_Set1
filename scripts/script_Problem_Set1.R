@@ -34,7 +34,7 @@
   ## llamar la librería pacman: contiene la función p_load()
   require(pacman)
 
-  ## El comandoo "p_load" permite instalar/cargar las librerías que se enlistan:
+  ## El comando "p_load" permite instalar/cargar las librerías que se enlistan:
   p_load(tidyverse, # contiene las librerías ggplot, dplyr...
          rvest, # web-scraping
          stargazer,
@@ -381,6 +381,91 @@
             df = FALSE
             )
   ### Bootstrap
+  
+  #Obtener los coeficientes de la regresión
+  coefs<-reg1$coef
+  coefs 
+  
+  #Extaer los coeficientes a escalares
+  b0<-coefs[1]#constante
+  b1<-coefs[2]#coeficiente asociado a la edad
+  b2<-coefs[3]#coeficiente asociado a la edad al cuadrado
+
+  # Estimar la elasticidad en el valor de la media 
+  edad_bar<-mean(db_geih2018$age)
+  
+  #Obtener la elasticidad del salario:
+  elastpt<-b1+2*b2*edad_bar
+  
+  elastpt
+  
+  eta_mod2_fn<-function(data,index,
+                        age_bar=mean(db_geih2018$age)){
+    
+    #Obtener los coeficientes
+    coefs<-lm(Log.Hourly.Wage ~ age + age2,data, subset = index)$coefficients
+    
+    #Poner los coeficientes en escalares 
+    b1<-coefs[2]
+    b2<-coefs[3] 
+
+    #Calcular la elasticidad del salario
+    elastpt<-b1+2*b2*age_bar
+    
+    #Devolver la elasticidad del salario
+    return(elastpt)
+  }
+  
+  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018))  
+  
+  #Evaluar en diferentes puntos de la distribución de edad
+  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018),age_bar=-1) 
+  
+  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018),age_bar=2) 
+  
+  #Obtener el error estándar de nuestra elasticidad
+  results <- boot(db_geih2018, eta_mod2_fn,R=1000)
+  results
+  
+  # Bootstrap para los obtener errores estándar
+  eta_fn<-function(data,index){
+    coef(lm(Log.Hourly.Wage ~ age + age2, data = db_geih2018, subset = index)) 
+  }[2] #obtiene el segundo coeficiente de la regresión lineal
+  
+  eta_fn(db_geih2018,1:nrow(db_geih2018))
+  
+  boot <- boot(db_geih2018, eta_fn, R = 1000)
+  coef_boot <- boot$t0
+  SE <- apply(boot$t,2,sd)
+  
+  # Crear un dataframe con las x y las y
+  
+  x <- seq(18, 94, length.out = 100)
+  y <- coef_boot[1] + coef_boot[2] * x + coef_boot[3] * x^2
+  y_i <- (coef_boot[1]-1.96*SE[1]) + (coef_boot[2]-1.96*SE[2])*x + 
+    (coef_boot[3]-1.96*SE[3])*x^2
+  y_s <- (coef_boot[1]+1.96*SE[1]) + (coef_boot[2]+1.96*SE[2])*x + 
+    (coef_boot[3]+1.96*SE[3])*x^2
+  
+  df <- data.frame(x, y, y_i, y_s)
+  
+  # Graficar la función
+  
+  graph <- ggplot(df, aes(x = x, y = y)) +
+    geom_line(aes(color = "Estimado"), size = 1) +
+    geom_line(aes(x = x, y = y_i, color = "Límite inferior"), linetype = "dotted", size = 1) +
+    geom_line(aes(x = x, y = y_s, color = "Límite superior"), linetype = "dotted", size = 1) +
+    scale_color_manual(name = "", values = c("Estimado" = "blue", "Límite inferior" = "red", "Límite superior" = "red")) +
+    labs(x = "Edad", y = "Log(Salario por hora)") +
+    theme_classic() +
+    scale_x_continuous(limits = c(18, 94)) +
+    geom_vline(xintercept = 43, linetype = "dotted") +
+    theme(legend.position = "bottom")
+  
+  ggsave(graph, filename = "C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/views/Rplot4.png", height = 5, width = 6)
+
+
+  #Revisar
   
   sample_coef_intercept <- NULL
   sample_coef_x1 <- NULL
