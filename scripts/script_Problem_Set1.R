@@ -287,7 +287,8 @@
     geom_boxplot(alpha=0.3) +
     theme(legend.position="none") +
     scale_y_continuous(labels = scales::comma) +
-    scale_fill_brewer(palette="BuPu") # Demasiados Outliers!
+    scale_fill_brewer(palette="BuPu")+ # Demasiados Outliers!
+   labs(x='Edad', y='Salario por hora')
   
   # Se computan los limites inferiores y superiores del boxplot
   
@@ -302,6 +303,7 @@
     scale_y_continuous(labels = scales::comma) +
     coord_cartesian(ylim = ylim1*1.05) +
     scale_fill_brewer(palette="Dark2")
+  labs(x='Edad', y='Salario por hora')
   
   # No parecen haber diferencias en el salario por hora
   
@@ -317,7 +319,8 @@
                  outlier.shape = NA) +
     scale_y_continuous(labels = scales::comma) +
     coord_cartesian(ylim = ylim1*1.05) +
-    scale_fill_brewer(palette="Dark2")
+    scale_fill_brewer(palette="Dark2")+
+  labs(x='Edad', y='Salario por hora')
   
   #### Si se toma el ingreso laboral mensual, ya se empieza a apreciar la brecha salarial
   
@@ -335,7 +338,7 @@
     scale_y_continuous(labels = scales::comma) +
     #coord_cartesian(ylim = ylim1*1.05) +
     theme_minimal()
-  
+    
   ### Ingreso laboral mensual 
   
   db_geih2018 %>% 
