@@ -41,8 +41,8 @@
          ggplot2, 
          hrbrthemes,
          tidymodels,
-         fastDummies, # Tiene las herramientas para crear modelos de Machine learning
-         boot) 
+         fastDummies,
+         splines) # Tiene las herramientas para crear modelos de Machine learning
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
@@ -269,12 +269,12 @@
   
   db_geih2018 <- geih2018 %>% 
   select(directorio, secuencia_p, orden, # Variables de ID
-         clase, estrato1, age, maxEducLevel, sex, # Demograficas
+         clase, estrato1, age, maxEducLevel, sex, "Kinship" = p6050, # Demograficas
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         #inglab, w, # Las que yo borraria
-         formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
+         formal, relab, regSalud, cotPension, "Self.Emp" = cuentaPropia,
+         sizeFirm, oficio # Variables laborales relevantes
          )
  
   #---3. Estadística descriptiva ##########################################################################################
@@ -371,15 +371,9 @@
              data = db_geih2018) 
   
   summary(reg1)
+  
   stargazer(reg1,type="text")
-  summary(db_geih2018$Log.Hourly.Wage)
-  #Para obtener el código de la tabla en latex
 
-  stargazer(reg1, header=FALSE,
-            digits=2, single.row=FALSE,
-            intercept.bottom=TRUE,
-            df = FALSE
-            )
   ### Bootstrap
   
   sample_coef_intercept <- NULL
@@ -419,7 +413,6 @@
       bootstrap = means.boots,
       erstdBoots = erstd.boots),4), 
     "simple", caption = "Coefficients in different models")
-  
 
   ### Intervalos de confianza
   
@@ -589,11 +582,12 @@
   ##### Pre-procesamiento de la base y ED#####
   
   Model_Data <- db_geih2018 %>% 
-    select("Class" = clase, "Strata" = estrato1, "Age" = age, 
+    select("Strata" = estrato1, "Age" = age, Kinship,
            "Age_Sqrt"= age2, "Sex" = sex, 
            "Max.Educ.Level" = maxEducLevel, 
            Hourly.Wage, Hourly.Wage.DANE, 
-           "Formal" = formal, relab, "Job.Type"= oficio, cotPension, regSalud,
+           "Formal" = formal, relab, "Job.Type" = oficio, 
+           cotPension, regSalud, Self.Emp,
            sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
     mutate(
       Worker.Type  = case_when(
@@ -621,10 +615,13 @@
       ),
       Job.Type = as.character(Job.Type),
       Max.Educ.Level = as.character(Max.Educ.Level),
-      Class = as.character(Class),
-      Strata = as.character(Strata)
+      Kinship = as.character(Kinship),
+      Strata = as.character(Strata),
       ) %>% 
     na.omit()
+  
+  table(as.factor(Model_Data$Self.Emp), 
+        as.factor(Model_Data$Firm.Size))
   
   summary(Model_Data)
   
@@ -652,8 +649,7 @@
   
   GEIH_Split <- Model_Data %>% 
     na.omit() %>% 
-    initial_split(prop = 0.70,
-                  strata = Log.Hourly.Wage)
+    initial_split(prop = 0.70)
   
   GEIH_Training <- training(GEIH_Split)
   
@@ -698,7 +694,7 @@
   GEIH_Fit_M1
   
   tidy(GEIH_Fit_M1,
-       exponentiate = TRUE)
+       exponentiate = FALSE)
   
   Training_Metrics_M1 <- glance(GEIH_Fit_M1)
   
@@ -715,15 +711,26 @@
                                select(Log.Hourly.Wage))
   
 
-  ggplot(GEIH_Test_Res_M1, 
+  M1 <- ggplot(GEIH_Test_Res_M1, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
-    geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
-    # Scale and size the x- and y-axis uniformly:
-    coord_obs_pred()
+    geom_point(alpha = 0.5,
+               color = "#cc0000") + 
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", 
+         x = "Logaritmo del ingreso laboral por hora") +
+    coord_obs_pred() +
+    theme_classic() +
+    theme(text = element_text(family = "Helvetica"))
+  
+  setwd("C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/views")
+  
+  ggsave("M1.png", 
+         M1, 
+         width = 4, 
+         height = 4)
+    
   
   GEIH_Metrics <- metric_set(rmse, 
                              rsq, 
@@ -741,9 +748,7 @@
 
   GEIH_Recipe_M2 <- 
     recipe(Log.Hourly.Wage ~ Sex, 
-           GEIH_Training) %>% 
-    step_string2factor(Sex)
-  
+           GEIH_Training)
   GEIH_Recipe_M2
   
   ### Se especifica el modelo
@@ -771,7 +776,7 @@
   GEIH_Fit_M2
   
   tidy(GEIH_Fit_M2,
-       exponentiate = TRUE)
+       exponentiate = FALSE)
   
   Training_Metrics_M2 <- glance(GEIH_Fit_M2)
   
@@ -788,15 +793,25 @@
                                select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M2, 
-         aes(x = Log.Hourly.Wage, 
-             y = .pred)) + 
+  M2 <- ggplot(GEIH_Test_Res_M2, 
+               aes(x = Log.Hourly.Wage, 
+                   y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
-    geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
-    # Scale and size the x- and y-axis uniformly:
-    coord_obs_pred()
+    geom_point(alpha = 0.5,
+               color = "#cc0000") + 
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", 
+         x = "Logaritmo del ingreso laboral por hora") +
+    coord_obs_pred() +
+    theme_classic() +
+    theme(text = element_text(family = "Helvetica"))
+  
+  setwd("C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/views")
+  
+  ggsave("M2.png", 
+         M2, 
+         width = 4, 
+         height = 4)
   
   GEIH_Metrics <- metric_set(rmse, 
                              rsq, 
@@ -840,7 +855,7 @@
   )
   
   tidy(GEIH_Fit_R,
-       exponentiate = TRUE)
+       exponentiate = FALSE)
   
   ### Calcular los residuales 
   
@@ -863,8 +878,7 @@
   
   GEIH_Split_FWL <- GEIH_Resids %>% 
     na.omit() %>% 
-    initial_split(prop = 0.70,
-                  strata = Log.Hourly.Wage)
+    initial_split(prop = 0.70)
   
   GEIH_Training_FWL <- training(GEIH_Split_FWL)
   
@@ -906,7 +920,7 @@
   GEIH_Fit_M3
   
   OLS3 <- tidy(GEIH_Fit_M3,
-              exponentiate = TRUE)
+              exponentiate = FALSE)
   
   OLS3 <- OLS3 %>%
     mutate(p.value = round(p.value, 4))
@@ -929,15 +943,25 @@
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M3, 
-         aes(x = Log.Hourly.Wage, 
-             y = .pred)) + 
+  M3 <- ggplot(GEIH_Test_Res_M3, 
+               aes(x = Log.Hourly.Wage, 
+                   y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
-    geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
-    # Scale and size the x- and y-axis uniformly:
-    coord_obs_pred()
+    geom_point(alpha = 0.5,
+               color = "#004c99") + 
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", 
+         x = "Logaritmo del ingreso laboral por hora") +
+    coord_obs_pred() +
+    theme_classic() +
+    theme(text = element_text(family = "Helvetica"))
+  
+  setwd("C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/views")
+  
+  ggsave("M3.png", 
+         M3, 
+         width = 4, 
+         height = 4)
   
   GEIH_Metrics <- metric_set(rmse, 
                              rsq, 
@@ -974,7 +998,7 @@
   )
   
   FWL <- tidy(GEIH_Fit_FWL,
-       exponentiate = TRUE)
+       exponentiate = FALSE)
   
   OLS3
   FWL # Se observa el mismo coeficiente que en el MCO con controles
@@ -997,15 +1021,26 @@
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_FWL, 
-         aes(x = Log.Hourly.Wage, 
-             y = .pred)) + 
+  
+  M_FWL <- ggplot(GEIH_Test_Res_FWL, 
+               aes(x = Log.Hourly.Wage, 
+                   y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
-    geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
-    # Scale and size the x- and y-axis uniformly:
-    coord_obs_pred()
+    geom_point(alpha = 0.5,
+               color = "#cc0000") + 
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", 
+         x = "Logaritmo del ingreso laboral por hora") +
+    coord_obs_pred() +
+    theme_classic() +
+    theme(text = element_text(family = "Helvetica"))
+  
+  setwd("C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/views")
+  
+  ggsave("M_FWL.png", 
+         M_FWL, 
+         width = 4, 
+         height = 4)
   
   GEIH_Metrics <- metric_set(rmse, 
                              rsq, 
@@ -1015,31 +1050,213 @@
                                         truth = Log.Hourly.Wage, 
                                         estimate = .pred)
   
-
-  Training_Metrics_M1
-  Training_Metrics_M2
-  Training_Metrics_M3
-  Training_Metrics_FWL
-  
-  Out_Sample_Metrics_M1
-  Out_Sample_Metrics_M2
-  Out_Sample_Metrics_M3
-  Out_Sample_Metrics_FWL
-  
-  
-  #### Cuarto modelo = Modelo 3 y se agrega Estrato y Reg de salud #####
+  #### Cuarto modelo = Modelo 3 y se agrega Estrato, Reg de salud y parentezco #####
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
   GEIH_Recipe_M4 <- 
+    recipe(Log.Hourly.Wage ~ Sex  + Age + Age_Sqrt + Max.Educ.Level +
+             + Strata + Worker.Type + Formal + Firm.Size + Kinship +
+             Job.Type + HealthCare.System, 
+           GEIH_Training) %>% 
+    step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, HealthCare.System,
+               Job.Type, Strata, Kinship)
+  
+  GEIH_Recipe_M4
+  
+  ### Se especifica el modelo
+  
+  GEIH_Spec <- 
+    linear_reg() %>% 
+    set_engine("lm") %>% 
+    set_mode("regression")
+  
+  ### Workflow
+  
+  GEIH_Wflow <- workflow(GEIH_Recipe_M4,
+                         GEIH_Spec)
+  
+  ### Se corre el modelo
+  
+  GEIH_Fit_M4 <- fit(GEIH_Wflow,
+                     GEIH_Training)
+  
+  GEIH_Fit_M4
+  
+  ## Evaluar los coeficientes
+  
+  OLS4 <- tidy(GEIH_Fit_M4,
+               exponentiate = FALSE)
+
+  ## Aproximar p values para mejor entendimiento
+  
+  OLS4 <- OLS4 %>%
+    mutate(p.value = round(p.value, 7))
+  
+
+  Training_Metrics_M4 <- glance(GEIH_Fit_M4)
+  
+  
+  ### Métricas de evaluación out of sample
+  
+  GEIH_Test_Res_M4 <- predict(
+    GEIH_Fit_M4, 
+    GEIH_Test %>% 
+      select(-Log.Hourly.Wage)
+  )
+  
+  GEIH_Test_Res_M4 <- bind_cols(GEIH_Test_Res_M4, 
+                                GEIH_Test %>% 
+                                  select(Log.Hourly.Wage))
+  
+  
+  M4 <- ggplot(GEIH_Test_Res_M4, 
+               aes(x = Log.Hourly.Wage, 
+                   y = .pred)) + 
+    # Create a diagonal line:
+    geom_abline(lty = 2) + 
+    geom_point(alpha = 0.5,
+               color = "#004c99") + 
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", 
+         x = "Logaritmo del ingreso laboral por hora") +
+    coord_obs_pred() +
+    theme_classic() +
+    theme(text = element_text(family = "Helvetica"))
+  
+  setwd("C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/views")
+  
+  ggsave("M4.png", 
+         M4, 
+         width = 4, 
+         height = 4)
+  
+  
+  GEIH_Metrics <- metric_set(rmse, 
+                             rsq, 
+                             mae)
+  
+  Out_Sample_Metrics_M4 <- GEIH_Metrics(GEIH_Test_Res_M4, 
+                                        truth = Log.Hourly.Wage, 
+                                        estimate = .pred)
+  
+  
+  #### Quinto modelo = Modelo 4 y se agregan interacciones entre edad, sexo, estrato #####
+  
+  ### Se prepara la base de entrenamiento y se especifica la forma funcional
+  
+  GEIH_Recipe_M5 <- 
+    recipe(Log.Hourly.Wage ~ Sex  + Age + Age_Sqrt + Max.Educ.Level +
+             + Strata + HealthCare.System + Kinship +
+             Worker.Type + Formal + Firm.Size + Job.Type , 
+           GEIH_Training) %>% 
+    step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, 
+               Job.Type, Strata, HealthCare.System, Kinship) %>% 
+    step_interact(~ Age:Sex + Age:starts_with("Strata") + Sex:starts_with("Strata"))
+  
+  GEIH_Recipe_M5
+  
+  ## Revisar si la base de entrenamiento se está preparando bien
+  
+  Zoom <- juice(prep(GEIH_Recipe_M5))
+  
+  ### Se especifica el modelo
+  
+  GEIH_Spec <- 
+    linear_reg() %>% 
+    set_engine("lm") %>% 
+    set_mode("regression")
+  
+  ### Workflow
+  
+  GEIH_Wflow <- workflow(GEIH_Recipe_M5,
+                         GEIH_Spec)
+  
+  ### Se corre el modelo
+  
+  GEIH_Fit_M5 <- fit(GEIH_Wflow,
+                     GEIH_Training)
+  
+  GEIH_Fit_M5
+  
+  ## Evaluar los coeficientes
+  
+  OLS5 <- tidy(GEIH_Fit_M5,
+               exponentiate = FALSE)
+  
+  ## Aproximar p values para mejor entendimiento
+  
+  OLS5 <- OLS5 %>%
+    mutate(p.value = round(p.value, 7))
+  
+  
+  Training_Metrics_M5 <- glance(GEIH_Fit_M5)
+  
+  
+  ### Métricas de evaluación out of sample
+  
+  GEIH_Test_Res_M5 <- predict(
+    GEIH_Fit_M5, 
+    GEIH_Test %>% 
+      select(-Log.Hourly.Wage)
+  )
+  
+  GEIH_Test_Res_M5 <- bind_cols(GEIH_Test_Res_M5, 
+                                GEIH_Test %>% 
+                                  select(Log.Hourly.Wage))
+  
+  
+  
+  M5 <- ggplot(GEIH_Test_Res_M5, 
+               aes(x = Log.Hourly.Wage, 
+                   y = .pred)) + 
+    # Create a diagonal line:
+    geom_abline(lty = 2) + 
+    geom_point(alpha = 0.5,
+               color = "#004c99") + 
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", 
+         x = "Logaritmo del ingreso laboral por hora") +
+    coord_obs_pred() +
+    theme_classic() +
+    theme(text = element_text(family = "Helvetica"))
+  
+  setwd("C:/Users/Juan/OneDrive - Universidad de los Andes/Juan/Documentos/GitHub/Big_Data_Problem_Set1/views")
+  
+  ggsave("M5.png", 
+         M5, 
+         width = 4, 
+         height = 4)
+  
+  GEIH_Metrics <- metric_set(rmse, 
+                             rsq, 
+                             mae)
+  
+  Out_Sample_Metrics_M5 <- GEIH_Metrics(GEIH_Test_Res_M5, 
+                                        truth = Log.Hourly.Wage, 
+                                        estimate = .pred)
+
+  
+  #### Sexto modelo = Modelo 4 y se agregan interacciones entre sexo y educacion y tipo de trabajador #####
+  
+  ### Se prepara la base de entrenamiento y se especifica la forma funcional
+  
+  GEIH_Recipe_M6 <- 
     recipe(Log.Hourly.Wage ~ Sex  + Age + Age_Sqrt + Max.Educ.Level +
              + Strata + Worker.Type + Formal + Firm.Size + 
              Job.Type , 
            GEIH_Training) %>% 
     step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, 
-               Job.Type, Strata)
+               Job.Type, Strata) %>% 
+    step_interact(~ Sex:starts_with("Worker") + Sex:starts_with("Max.Educ.Level") + Age:starts_with("Max.Educ.Level"))
   
-  GEIH_Recipe_M4
+                    
+  
+  # Dado que no hubo mejoras en el RMSE out of sample con el modelo anterior, no se meten dejan esas interacciones pasadas
+  
+  GEIH_Recipe_M6
+  
+  ## Revisar si la base de entrenamiento se está preparando bien
+  
+  Zoom <- juice(prep(GEIH_Recipe_M6))
   
   ### Se especifica el modelo
   
@@ -1050,50 +1267,50 @@
   
   ### Workflow
   
-  GEIH_Wflow <- workflow(GEIH_Recipe_M4,
+  GEIH_Wflow <- workflow(GEIH_Recipe_M6,
                          GEIH_Spec)
   
   ### Se corre el modelo
   
-  GEIH_Fit_M4 <- fit(GEIH_Wflow,
+  GEIH_Fit_M6 <- fit(GEIH_Wflow,
                      GEIH_Training)
   
-  GEIH_Fit_M4
+  GEIH_Fit_M6
   
   ## Evaluar los coeficientes
   
-  OLS4 <- tidy(GEIH_Fit_M4,
-               exponentiate = TRUE)
-
+  OLS6 <- tidy(GEIH_Fit_M6,
+               exponentiate = FALSE)
+  
   ## Aproximar p values para mejor entendimiento
   
-  OLS4 <- OLS4 %>%
+  OLS6 <- OLS6 %>%
     mutate(p.value = round(p.value, 7))
   
-
-  Training_Metrics_M4 <- glance(GEIH_Fit_M4)
+  
+  Training_Metrics_M6 <- glance(GEIH_Fit_M6)
   
   
   ### Métricas de evaluación out of sample
   
-  GEIH_Test_Res_M4 <- predict(
-    GEIH_Fit_M4, 
+  GEIH_Test_Res_M6 <- predict(
+    GEIH_Fit_M6, 
     GEIH_Test %>% 
       select(-Log.Hourly.Wage)
   )
   
-  GEIH_Test_Res_M4 <- bind_cols(GEIH_Test_Res_M4, 
+  GEIH_Test_Res_M6 <- bind_cols(GEIH_Test_Res_M6, 
                                 GEIH_Test %>% 
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M4, 
+  ggplot(GEIH_Test_Res_M6, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
     geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", x = "Logaritmo del ingreso laboral por hora") +
     # Scale and size the x- and y-axis uniformly:
     coord_obs_pred()
   
@@ -1101,7 +1318,7 @@
                              rsq, 
                              mae)
   
-  Out_Sample_Metrics_M4 <- GEIH_Metrics(GEIH_Test_Res_M4, 
+  Out_Sample_Metrics_M6 <- GEIH_Metrics(GEIH_Test_Res_M6, 
                                         truth = Log.Hourly.Wage, 
                                         estimate = .pred)
   
@@ -1110,27 +1327,55 @@
   Training_Metrics_M3
   Training_Metrics_FWL
   Training_Metrics_M4
+  Training_Metrics_M5
+  Training_Metrics_M6
   
   Out_Sample_Metrics_M1
   Out_Sample_Metrics_M2
   Out_Sample_Metrics_M3
   Out_Sample_Metrics_FWL
   Out_Sample_Metrics_M4
+  Out_Sample_Metrics_M5
+  Out_Sample_Metrics_M6
   
-
-  #### Quinto modelo = Modelo 4 y se agregan interacciones entre edad, sexo, estrato #####
+  #### Séptimo modelo = Modelo 6 y se agregan polinomios de la edad #####
+  
+  ### Exploración gráficamente los posibles polinomios
+  
+  plot_smoother <- function(deg_free) {
+    ggplot(GEIH_Training, aes(x = Age, y = Log.Hourly.Wage)) + 
+      geom_point(alpha = .2) + 
+      geom_smooth(
+        method = lm,
+        formula = y ~ ns(x, df = deg_free),
+        color = "lightblue",
+        se = FALSE
+      ) +
+      labs(title = paste(deg_free, "Spline Terms"),
+           y = "Hourly labor income")
+  }
+  
+  plot_smoother(4)
+  plot_smoother(8)
+  
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
-  GEIH_Recipe_M4 <- 
+  GEIH_Recipe_M7 <- 
     recipe(Log.Hourly.Wage ~ Sex  + Age + Age_Sqrt + Max.Educ.Level +
              + Strata + HealthCare.System +
              Worker.Type + Formal + Firm.Size + Job.Type , 
            GEIH_Training) %>% 
     step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, 
-               Job.Type, Strata, HealthCare.System)
+               Job.Type, Strata, HealthCare.System) %>% 
+    step_ns(Age, deg_free = 4) 
+
+
+  GEIH_Recipe_M7
   
-  GEIH_Recipe_M4
+  ## Revisar si la base de entrenamiento se está preparando bien
+  
+  Zoom <- juice(prep(GEIH_Recipe_M7))
   
   ### Se especifica el modelo
   
@@ -1141,50 +1386,50 @@
   
   ### Workflow
   
-  GEIH_Wflow <- workflow(GEIH_Recipe_M4,
+  GEIH_Wflow <- workflow(GEIH_Recipe_M7,
                          GEIH_Spec)
   
   ### Se corre el modelo
   
-  GEIH_Fit_M4 <- fit(GEIH_Wflow,
+  GEIH_Fit_M7 <- fit(GEIH_Wflow,
                      GEIH_Training)
-  
-  GEIH_Fit_M4
+
+  GEIH_Fit_M7
   
   ## Evaluar los coeficientes
   
-  OLS4 <- tidy(GEIH_Fit_M4,
-               exponentiate = TRUE)
+  OLS7 <- tidy(GEIH_Fit_M7,
+               exponentiate = FALSE)
   
   ## Aproximar p values para mejor entendimiento
   
-  OLS4 <- OLS4 %>%
+  OLS7 <- OLS7 %>%
     mutate(p.value = round(p.value, 7))
   
   
-  Training_Metrics_M4 <- glance(GEIH_Fit_M4)
+  Training_Metrics_M7 <- glance(GEIH_Fit_M7)
   
   
   ### Métricas de evaluación out of sample
   
-  GEIH_Test_Res_M4 <- predict(
-    GEIH_Fit_M4, 
+  GEIH_Test_Res_M7 <- predict(
+    GEIH_Fit_M7, 
     GEIH_Test %>% 
       select(-Log.Hourly.Wage)
   )
   
-  GEIH_Test_Res_M4 <- bind_cols(GEIH_Test_Res_M4, 
+  GEIH_Test_Res_M7 <- bind_cols(GEIH_Test_Res_M7, 
                                 GEIH_Test %>% 
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M4, 
+  ggplot(GEIH_Test_Res_M7, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
     geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", x = "Logaritmo del ingreso laboral por hora") +
     # Scale and size the x- and y-axis uniformly:
     coord_obs_pred()
   
@@ -1192,7 +1437,7 @@
                              rsq, 
                              mae)
   
-  Out_Sample_Metrics_M4 <- GEIH_Metrics(GEIH_Test_Res_M4, 
+  Out_Sample_Metrics_M7 <- GEIH_Metrics(GEIH_Test_Res_M7, 
                                         truth = Log.Hourly.Wage, 
                                         estimate = .pred)
   
@@ -1201,80 +1446,148 @@
   Training_Metrics_M3
   Training_Metrics_FWL
   Training_Metrics_M4
+  Training_Metrics_M5
+  Training_Metrics_M6
+  Training_Metrics_M7
   
   Out_Sample_Metrics_M1
   Out_Sample_Metrics_M2
   Out_Sample_Metrics_M3
   Out_Sample_Metrics_FWL
   Out_Sample_Metrics_M4
+  Out_Sample_Metrics_M5
+  Out_Sample_Metrics_M6
+  Out_Sample_Metrics_M7
   
-  #### Sexto modelo = Modelo 5 y se agregan interacciones entre sexo y educacion y tipo de trabajador #####
-  #### Séptimo modelo = Modelo 6 y se agregan polinomios #####
+  
+  
+  
   #### Octavo modelo = Modelo 7 y se corre un Lasso para hacer selección de variables #####
   
-  
-  ### Se prepara la base de entrenamiento y se especifica la forma funcional
-  
-  GEIH_Recipe_M3 <- 
-    recipe(Log.Hourly.Wage ~ Sex + Max.Educ.Level + Age + Age_Sqrt + 
-             Worker.Type + Formal + Firm.Size + Job.Type, 
-           GEIH_Training_FWL) %>% 
+  GEIH_Recipe_M8 <- 
+    recipe(Log.Hourly.Wage ~ Sex  + Age + Age_Sqrt + Max.Educ.Level +
+             + Strata + HealthCare.System +
+             Worker.Type + Formal + Firm.Size + Job.Type , 
+           GEIH_Training) %>% 
     step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, 
-               Job.Type)
+               Job.Type, Strata, HealthCare.System) %>% 
+    step_interact(~ Age:Sex + Age:starts_with("Strata") + Sex:starts_with("Strata")) %>% 
+    step_normalize(Age, Age_Sqrt)
   
-  GEIH_Recipe_M3
   
-  ### Se especifica el modelo
+  GEIH_Recipe_M8
   
-  GEIH_Spec <- 
-    linear_reg() %>% 
-    set_engine("lm") %>% 
-    set_mode("regression")
+  ## Revisar si la base de entrenamiento se está preparando bien
+  
+  Zoom <- juice(prep(GEIH_Recipe_M8))
+  
   
   ### Workflow
   
-  GEIH_Wflow <- workflow(GEIH_Recipe_M3,
-                         GEIH_Spec)
+  GEIH_Wflow <- workflow(GEIH_Recipe_M8
+                         )
+  
+  ### Optimización del lambda en función del RMSE
+  
+  set.seed(2403)
+  
+  GEIH_Boots <- bootstraps(GEIH_Training, 
+                            strata = Log.Hourly.Wage)
+  
+  Tune_Spec <- linear_reg(penalty = tune(), 
+                          mixture = 1) %>%
+    set_engine("glmnet")
+  
+  Lambda_grid <- head(grid_regular(penalty(), 
+                                   levels = 50))
+  
+  ## Se corre el resampleo
+  
+  doParallel::registerDoParallel()
+  
+  set.seed(2403)
+  Lasso_grid <- tune_grid(
+    GEIH_Wflow %>% 
+      add_model(Tune_Spec),
+    resamples = GEIH_Boots,
+    grid = Lambda_grid
+  )
+  
+  # Se evaluan los resultados obtenidos
+  
+  Lasso_grid %>% 
+    collect_metrics()
+  
+  Lasso_grid %>%
+    collect_metrics() %>%
+    ggplot(aes(penalty, 
+               mean, 
+               color = .metric)) +
+    geom_errorbar(aes(
+      ymin = mean - std_err,
+      ymax = mean + std_err
+    ),
+    alpha = 0.5
+    ) +
+    geom_line(size = 1.5) +
+    facet_wrap(~.metric, scales = "free", nrow = 2) +
+    scale_x_log10() +
+    theme(legend.position = "none")
+  
+  # Se selecciona el Lambda con el RMSE más bajo
+  
+  Lowest_RMSE <- Lasso_grid %>%
+    select_best("rmse")
+  
+  # EL proceso de optimización de lamba sugiere un valor cercano a cero,
+  # es decir, casi igual a correr un OLS
+  
+  ### Se especifica el modelo con el lambda optimizado
+  
+  GEIH_Spec_Lasso <- 
+    linear_reg(penalty = 0.0013, mixture = 1) %>% 
+    set_engine("glmnet") %>% 
+    set_mode("regression")
+  
+  ### Se monta al workflow el modelo con el lambda optimizado 
+  
+  GEIH_Wflow <- workflow(GEIH_Recipe_M8,
+                         GEIH_Spec_Lasso)
+  
   
   ### Se corre el modelo
   
-  GEIH_Fit_M3 <- fit(GEIH_Wflow,
-                     GEIH_Training_FWL
-  )
+  GEIH_Fit_M8 <- fit(GEIH_Wflow,
+                     GEIH_Training)
   
-  GEIH_Fit_M3
+  GEIH_Fit_M8
   
-  OLS3 <- tidy(GEIH_Fit_M3,
-               exponentiate = TRUE)
+  ## Evaluar los coeficientes
   
-  OLS3 <- OLS3 %>%
-    mutate(p.value = round(p.value, 4))
-  
-  
-  
-  Training_Metrics_M3 <- glance(GEIH_Fit_M3)
+  Lasso <- tidy(GEIH_Fit_M8,
+               exponentiate = FALSE)
   
   
   ### Métricas de evaluación out of sample
   
-  GEIH_Test_Res_M3 <- predict(
-    GEIH_Fit_M3, 
-    GEIH_Test_FWL %>% 
+  GEIH_Test_Res_M8 <- predict(
+    GEIH_Fit_M8, 
+    GEIH_Test %>% 
       select(-Log.Hourly.Wage)
   )
   
-  GEIH_Test_Res_M3 <- bind_cols(GEIH_Test_Res_M3, 
-                                GEIH_Test_FWL %>% 
+  GEIH_Test_Res_M8 <- bind_cols(GEIH_Test_Res_M8, 
+                                GEIH_Test %>% 
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M3, 
+  ggplot(GEIH_Test_Res_M8, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
     geom_abline(lty = 2) + 
     geom_point(alpha = 0.5) + 
-    labs(y = "Predicted Log Labor Income", x = "Log Hourly Labor Income") +
+    labs(y = "Predicción del logaritmo del ingreso laboral por hora", x = "Logaritmo del ingreso laboral por hora") +
     # Scale and size the x- and y-axis uniformly:
     coord_obs_pred()
   
@@ -1282,8 +1595,50 @@
                              rsq, 
                              mae)
   
-  Out_Sample_Metrics_M3 <- GEIH_Metrics(GEIH_Test_Res_M3, 
+  Out_Sample_Metrics_M8 <- GEIH_Metrics(GEIH_Test_Res_M8, 
                                         truth = Log.Hourly.Wage, 
                                         estimate = .pred)
   
+  
+  ##### Métricas de evaluación #####
+  
+# Se consolidan todas las métricas in sample en un data frame
+  
+  Training_Metrics <- rbind(Training_Metrics_M1,
+                            Training_Metrics_M2,
+                            Training_Metrics_M3,
+                            Training_Metrics_FWL,
+                            Training_Metrics_M4,
+                            Training_Metrics_M5,
+                            Training_Metrics_M6,
+                            Training_Metrics_M7
+                            )
+  
+  Training_Metrics_F <- Training_Metrics %>% 
+    select(1,2, 8, 9) %>% 
+    mutate(
+      ID = c("Modelo 1", "Modelo 2", "Modelo 3",
+             "Modelo 4", "Modelo 5", "Modelo 6", 
+             "Modelo 7", "Modelo 8"),
+      r.squared = round(r.squared*100, 2),
+      adj.r.squared = round(adj.r.squared*100, 2)
+    )
+  
+  
+  Test_Metrics <- rbind(Out_Sample_Metrics_M1,
+                            Out_Sample_Metrics_M2,
+                            Out_Sample_Metrics_M3,
+                            Out_Sample_Metrics_FWL,
+                            Out_Sample_Metrics_M4,
+                            Out_Sample_Metrics_M5,
+                            Out_Sample_Metrics_M6,
+                            Out_Sample_Metrics_M7,
+                            Out_Sample_Metrics_M8)
+  
+  Test_Metrics_F <- Test_Metrics %>% 
+    filter(.metric == "rmse") %>% 
+    mutate(
+    ID = c("Modelo 1", "Modelo 2", "Modelo 3",
+           "Modelo FWL", "Modelo 4", "Modelo 5", 
+           "Modelo 6", "Modelo 7", "Modelo 8"))
   
