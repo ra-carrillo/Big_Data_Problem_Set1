@@ -42,7 +42,7 @@
          hrbrthemes,
          tidymodels,
          fastDummies, # Tiene las herramientas para crear modelos de Machine learning
-         boot) 
+         boot, bootstrap) 
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
@@ -365,7 +365,7 @@
       Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE) # Log del salario por hora
     )
   
- ### Se corre el modelo por MCO
+ ### Regresión 1: Estimación por MCO
   
   reg1 <- lm(Log.Hourly.Wage ~ age + age2,
              data = db_geih2018) 
@@ -407,6 +407,7 @@
       c(sample_erstd_x2, coef(summary(reg_boots))[3, 2])
   }
   
+  #Obtener tabla que compara los diferentes modelos
   coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
                  sample_coef_x2, sample_erstd_x2)
   
