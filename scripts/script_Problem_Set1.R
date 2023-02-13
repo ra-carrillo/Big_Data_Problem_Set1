@@ -33,7 +33,7 @@
 
   ## llamar la librería pacman: contiene la función p_load()
   require(pacman)
-
+  require('fastDummies')
   ## El comando "p_load" permite instalar/cargar las librerías que se enlistan:
   p_load(tidyverse, # contiene las librerías ggplot, dplyr...
          rvest, # web-scraping
@@ -194,7 +194,6 @@
       )
     )
 
-  
   summary(geih2018$Labor.Income.Test) 
   summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
 
@@ -273,9 +272,90 @@
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         #inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
+ 
+
+ 
+ #Niveles socio-economicos
+
+ db_geih2018 <- dummy_cols(db_geih2018, select_columns = c("Est"))
+ 
+ ### Creacion de la variables necesarias para correr el modelo
+ 
+ db_geih2018 <- db_geih2018 %>% 
+   mutate(
+     age2 = age*age, # Edad al cuadrado
+     Log.Hourly.Wage = log(Hourly.Wage),
+     Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE), # Log del salario por hora
+     Log.Month.Wage = log(Labor.Income))  # Log del salario mensual
+
+ ##### Pre-procesamiento de la base y ED#####
+ 
+ Model_Data <- db_geih2018 %>% 
+   select("Class" = clase, "Strata" = estrato1, "Age" = age, 
+          "Age_Sqrt"= age2, "Sex" = sex, 
+          "Max.Educ.Level" = maxEducLevel, 
+          Hourly.Wage, Hourly.Wage.DANE, 
+          "Formal" = formal, relab, "Job.Type"= oficio, "Tothour.worked"=totalHoursWorked, cotPension, regSalud,
+          sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
+   mutate(
+     Worker.Type  = case_when(
+       relab == 1 ~ "Private Employee",
+       relab == 2 ~ "Goverment Employee",
+       relab == 3 ~ "Household Employee",
+       relab == 4 ~ "Self Employed",
+       relab == 5 ~ "Employer",
+       relab == 6 ~ "No Rem Family Employee",
+       relab == 7 ~ "No Rem Private Employee",
+       relab == 8 ~ "Jornaler",
+       relab == 9 ~ "Other"
+     ),
+     Firm.Size  = case_when(
+       sizeFirm == 1 ~ "Self Employed",
+       sizeFirm == 2 ~ "2-5 Workers",
+       sizeFirm == 3 ~ "6-10 Workers",
+       sizeFirm == 4 ~ "11-50 Workers",
+       sizeFirm == 5 ~ ">50 Workers"),
+     HealthCare.System = case_when(
+       regSalud == 1 ~ "Contributory",
+       regSalud == 2 ~ "Special",  
+       regSalud == 3 ~ "Subsidized",
+       TRUE ~ "NA"
+     ),
+     Job.Type = as.character(Job.Type),
+     Max.Educ.Level = as.character(Max.Educ.Level),
+     Class = as.character(Class),
+     Strata = as.character(Strata)
+   ) %>% 
+   na.omit()
+ 
+ summary(Model_Data)
+ 
+ #Creación variable mujer=1 y hombre=0
+ table(Model_Data$Sex)
+ 
+ Model_Data <- Model_Data %>% 
+   mutate(
+     Female=Female<-ifelse(Sex==0,1,0))  
+ 
+ table(Model_Data$Female)
+ Model_Data$Female
+ 
+ Model_Data$Female <- factor(Model_Data$Female, levels=c(0, 1), labels=c("Hombre", "Mujer"))
+ Model_Data$Female
+ 
+ table(Model_Data$Female)
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ #AQUI VOY
  
   #---3. Estadística descriptiva ##########################################################################################
     
@@ -356,34 +436,18 @@
   
   #---4. Regresión1: Profile Age-Wage ###############################################
   
-  ### Creacion de la variables necesarias para correr el modelo
+ 
   
-  db_geih2018 <- db_geih2018 %>% 
-    mutate(
-      age2 = age*age, # Edad al cuadrado
-      Log.Hourly.Wage = log(Hourly.Wage),
-      Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE), # Log del salario por hora
-      Log.Month.Wage = log(Labor.Income))  # Log del salario mensual
-
-  View(db_geih2018$Labor.Income)
  ### Regresión 1: Estimación por MCO
   
-  reg0 <- lm(Log.Month.Wage  ~ age + age2,
-             data = db_geih2018)
-  summary(reg0)
-  
-  stargazer(reg0,type="text")
-  
-  summary(db_geih2018$Log.Month.Wage)
-  
-  reg1 <- lm(Log.Hourly.Wage ~ age + age2,
-             data = db_geih2018) 
+  reg1 <- lm(Log.Hourly.Wage  ~ Age + Age_Sqrt,
+             data = Model_Data) 
   
   summary(reg1)
   
   stargazer(reg1,type="text")
   
-  summary(db_geih2018$Log.Hourly.Wage)
+  summary(Model_Data$Log.Hourly.Wage)
   
   #Para obtener el código de la tabla en latex
 
@@ -404,39 +468,39 @@
   b2<-coefs[3]#coeficiente asociado a la edad al cuadrado
 
   # Estimar la elasticidad en el valor de la media 
-  edad_bar<-mean(db_geih2018$age)
+  Age_bar<-mean(Model_Data$Age)
   
   #Obtener la elasticidad del salario:
-  elastpt<-b1+2*b2*edad_bar
+  elastpt<-b1+2*b2*Age_bar
   
   elastpt
   
   eta_mod2_fn<-function(data,index,
-                        age_bar=mean(db_geih2018$age)){
+                        Age_bar=mean(Model_Data$Age)){
     
     #Obtener los coeficientes
-    coefs<-lm(Log.Hourly.Wage ~ age + age2,data, subset = index)$coefficients
+    coefs<-lm(Log.Hourly.Wage  ~ Age + Age_Sqrt,data, subset = index)$coefficients
     
     #Poner los coeficientes en escalares 
     b1<-coefs[2]
     b2<-coefs[3] 
 
     #Calcular la elasticidad del salario
-    elastpt<-b1+2*b2*age_bar
+    elastpt<-b1+2*b2*Age_bar
     
     #Devolver la elasticidad del salario
     return(elastpt)
   }
   
-  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018))  
+  eta_mod2_fn(Model_Data,1:nrow(Model_Data))  
   
   #Evaluar en diferentes puntos de la distribución de edad
-  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018),age_bar=-1) 
+  eta_mod2_fn(Model_Data,1:nrow(Model_Data),Age_bar=-1) 
   
-  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018),age_bar=2) 
+  eta_mod2_fn(Model_Data,1:nrow(Model_Data),Age_bar=2) 
   
   #Obtener el error estándar de nuestra elasticidad
-  results <- boot(db_geih2018, eta_mod2_fn,R=1000)
+  results <- boot(Model_Data, eta_mod2_fn,R=1000)
   results
   
   # Bootstrap 
@@ -544,21 +608,7 @@
   
   #---5. Regresión 2: The gender earnings GAP 
   
-  #-----------------------------------------------------------------------------
-  #Creación variable mujer=1 y hombre=0
-  table(db_geih2018$sex)
-  db_geih2018 <- db_geih2018 %>% 
-    mutate(
-      fem=fem<-ifelse(sex==0,1,0))  
   
-  table(db_geih2018$fem)
-  db_geih2018$fem
-
-  db_geih2018$fem <- factor(db_geih2018$fem, levels=c(0, 1), labels=c("Hombre", "Mujer"))
-  db_geih2018$fem
-  
-  table(db_geih2018$fem)
-  #-----------------------------------------------------------------------------
   
   reg2 <- lm(Log.Hourly.Wage ~ fem, data = db_geih2018)
   
