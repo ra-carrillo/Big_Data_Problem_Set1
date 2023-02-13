@@ -226,7 +226,7 @@
   
   summary(geih2018$Labor.Income.DANE) 
   
-  # Manejaría y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
+  # Manejamos y_total_m_imputada y Labor.Income.DANE para todos los cálculos de aquí en adelante
 
  Zoom <- geih2018 %>%
    select(hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked)
