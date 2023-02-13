@@ -505,17 +505,18 @@
   
   # Bootstrap 
   eta_fn<-function(data,index){
-    coef(lm(Log.Hourly.Wage ~ age + age2, data = db_geih2018, subset = index)) 
+    coef(lm(Log.Hourly.Wage  ~ Age + Age_Sqrt, data = Model_Data, subset = index)) 
   } 
   
-  eta_fn(db_geih2018,1:nrow(db_geih2018))
+  eta_fn(Model_Data,1:nrow(Model_Data))
   
-  boot <- boot(db_geih2018, eta_fn, R = 1000)
+  boot <- boot(Model_Data, eta_fn, R = 1000)
   coef_boot <- boot$t0
   SE <- apply(boot$t,2,sd)
   boot
   coef_boot
   
+  summary(Model_Data$Age)
   # Matriz con las X y las Y
   
   x <- seq(18, 94, length.out = 100)
@@ -537,80 +538,14 @@
     labs(x = "Edad", y = "Log(Salario por hora)") +
     theme_classic() +
     scale_x_continuous(limits = c(18, 94)) +
-    geom_vline(xintercept = 39, linetype = "dotted") +
+    geom_vline(xintercept = 50, linetype = "dotted") +
     theme(legend.position = "bottom")
   
   ggsave(graph, filename = "C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/views/Rplot4.png", height = 5, width = 6)
   
-  
 
-  #Revisar
-  
-  sample_coef_intercept <- NULL
-  sample_coef_x1 <- NULL
-  sample_erstd_x1 <- NULL
-  sample_coef_x2 <- NULL
-  sample_erstd_x2 <- NULL
-  
-  for (i in 1:1000) {
-    sample_d = db_geih2018[sample(1:nrow(db_geih2018), 0.3*nrow(db_geih2018), replace = TRUE), ]
-    reg_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
-    sample_coef_intercept <-
-      c(sample_coef_intercept, reg_boots$coefficients[1])
-    
-    sample_coef_x1 <-
-      c(sample_coef_x1, reg_boots$coefficients[2])
-    
-    sample_erstd_x1 <-
-      c(sample_erstd_x1, coef(summary(reg_boots))[2, 2])
-    
-    sample_coef_x2 <-
-      c(sample_coef_x2, reg_boots$coefficients[3])
-    
-    sample_erstd_x2 <-
-      c(sample_erstd_x2, coef(summary(reg_boots))[3, 2])
-  }
-  
-  #Obtener tabla que compara los diferentes modelos
-  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
-                 sample_coef_x2, sample_erstd_x2)
-  
-  means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
-                  mean(sample_coef_x2))
-  erstd.boots = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
-  knitr::kable(round(
-    cbind(
-      sample = coef(summary(reg1))[, c(1,2)],
-      bootstrap = means.boots,
-      erstdBoots = erstd.boots),4), 
-    "simple", caption = "Coefficients in different models")
-  
-
-  ### Intervalos de confianza
-  
-  confint(reg1)
-  a <-
-    cbind(
-      quantile(sample_coef_intercept, prob = 0.025),
-      quantile(sample_coef_intercept, prob = 0.975))
-  b <-
-    cbind(quantile(sample_coef_x1, prob = 0.025),
-          quantile(sample_coef_x1, prob = 0.975))
-  c <-
-    cbind(quantile(sample_coef_x2, prob = 0.025),
-          quantile(sample_coef_x2, prob = 0.975))
-  d <-
-    round(cbind(
-      sample = confint(reg1),
-      boot = rbind(a, b, c)), 4)
-  colnames(d) <- c("2.5 %", "97.5 %",
-                   "2.5 %", "97.5 %")
-  
   #---5. Regresión 2: The gender earnings GAP 
-  
-  
-  
-  reg2 <- lm(Log.Hourly.Wage ~ fem, data = db_geih2018)
+  reg2 <- lm(Log.Hourly.Wage ~ Female, data = Model_Data)
   
   summary(reg2)
   
