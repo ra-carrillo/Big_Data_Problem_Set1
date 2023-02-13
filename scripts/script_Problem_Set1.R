@@ -1050,33 +1050,36 @@
   GEIH_Fit_M4 <- fit(GEIH_Wflow,
                      GEIH_Training)
   
-  GEIH_Fit_M3
+  GEIH_Fit_M4
   
-  OLS3 <- tidy(GEIH_Fit_M3,
+  ## Evaluar los coeficientes
+  
+  OLS4 <- tidy(GEIH_Fit_M4,
                exponentiate = TRUE)
+
+  ## Aproximar p values para mejor entendimiento
   
-  OLS3 <- OLS3 %>%
-    mutate(p.value = round(p.value, 4))
+  OLS4 <- OLS4 %>%
+    mutate(p.value = round(p.value, 7))
   
-  
-  
-  Training_Metrics_M3 <- glance(GEIH_Fit_M3)
+
+  Training_Metrics_M4 <- glance(GEIH_Fit_M4)
   
   
   ### Métricas de evaluación out of sample
   
-  GEIH_Test_Res_M3 <- predict(
-    GEIH_Fit_M3, 
-    GEIH_Test_FWL %>% 
+  GEIH_Test_Res_M4 <- predict(
+    GEIH_Fit_M4, 
+    GEIH_Test %>% 
       select(-Log.Hourly.Wage)
   )
   
-  GEIH_Test_Res_M3 <- bind_cols(GEIH_Test_Res_M3, 
-                                GEIH_Test_FWL %>% 
+  GEIH_Test_Res_M4 <- bind_cols(GEIH_Test_Res_M4, 
+                                GEIH_Test %>% 
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M3, 
+  ggplot(GEIH_Test_Res_M4, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
@@ -1090,24 +1093,36 @@
                              rsq, 
                              mae)
   
-  Out_Sample_Metrics_M3 <- GEIH_Metrics(GEIH_Test_Res_M3, 
+  Out_Sample_Metrics_M4 <- GEIH_Metrics(GEIH_Test_Res_M4, 
                                         truth = Log.Hourly.Wage, 
                                         estimate = .pred)
   
-
-  #### Quinto modelo = Modelo 4 y se agregan interacciones entre edad, sexo, clase, estrato #####
+  Training_Metrics_M1
+  Training_Metrics_M2
+  Training_Metrics_M3
+  Training_Metrics_FWL
+  Training_Metrics_M4
   
+  Out_Sample_Metrics_M1
+  Out_Sample_Metrics_M2
+  Out_Sample_Metrics_M3
+  Out_Sample_Metrics_FWL
+  Out_Sample_Metrics_M4
+  
+
+  #### Quinto modelo = Modelo 4 y se agregan interacciones entre edad, sexo, estrato #####
   
   ### Se prepara la base de entrenamiento y se especifica la forma funcional
   
-  GEIH_Recipe_M3 <- 
-    recipe(Log.Hourly.Wage ~ Sex + Max.Educ.Level + Age + Age_Sqrt + 
-             Worker.Type + Formal + Firm.Size + Job.Type, 
-           GEIH_Training_FWL) %>% 
+  GEIH_Recipe_M4 <- 
+    recipe(Log.Hourly.Wage ~ Sex  + Age + Age_Sqrt + Max.Educ.Level +
+             + Strata + HealthCare.System +
+             Worker.Type + Formal + Firm.Size + Job.Type , 
+           GEIH_Training) %>% 
     step_dummy(Max.Educ.Level, Worker.Type, Firm.Size, 
-               Job.Type)
+               Job.Type, Strata, HealthCare.System)
   
-  GEIH_Recipe_M3
+  GEIH_Recipe_M4
   
   ### Se especifica el modelo
   
@@ -1118,42 +1133,44 @@
   
   ### Workflow
   
-  GEIH_Wflow <- workflow(GEIH_Recipe_M3,
+  GEIH_Wflow <- workflow(GEIH_Recipe_M4,
                          GEIH_Spec)
   
   ### Se corre el modelo
   
-  GEIH_Fit_M3 <- fit(GEIH_Wflow,
-                     GEIH_Training_FWL
-  )
+  GEIH_Fit_M4 <- fit(GEIH_Wflow,
+                     GEIH_Training)
   
-  GEIH_Fit_M3
+  GEIH_Fit_M4
   
-  OLS3 <- tidy(GEIH_Fit_M3,
+  ## Evaluar los coeficientes
+  
+  OLS4 <- tidy(GEIH_Fit_M4,
                exponentiate = TRUE)
   
-  OLS3 <- OLS3 %>%
-    mutate(p.value = round(p.value, 4))
+  ## Aproximar p values para mejor entendimiento
+  
+  OLS4 <- OLS4 %>%
+    mutate(p.value = round(p.value, 7))
   
   
-  
-  Training_Metrics_M3 <- glance(GEIH_Fit_M3)
+  Training_Metrics_M4 <- glance(GEIH_Fit_M4)
   
   
   ### Métricas de evaluación out of sample
   
-  GEIH_Test_Res_M3 <- predict(
-    GEIH_Fit_M3, 
-    GEIH_Test_FWL %>% 
+  GEIH_Test_Res_M4 <- predict(
+    GEIH_Fit_M4, 
+    GEIH_Test %>% 
       select(-Log.Hourly.Wage)
   )
   
-  GEIH_Test_Res_M3 <- bind_cols(GEIH_Test_Res_M3, 
-                                GEIH_Test_FWL %>% 
+  GEIH_Test_Res_M4 <- bind_cols(GEIH_Test_Res_M4, 
+                                GEIH_Test %>% 
                                   select(Log.Hourly.Wage))
   
   
-  ggplot(GEIH_Test_Res_M3, 
+  ggplot(GEIH_Test_Res_M4, 
          aes(x = Log.Hourly.Wage, 
              y = .pred)) + 
     # Create a diagonal line:
@@ -1167,10 +1184,21 @@
                              rsq, 
                              mae)
   
-  Out_Sample_Metrics_M3 <- GEIH_Metrics(GEIH_Test_Res_M3, 
+  Out_Sample_Metrics_M4 <- GEIH_Metrics(GEIH_Test_Res_M4, 
                                         truth = Log.Hourly.Wage, 
                                         estimate = .pred)
   
+  Training_Metrics_M1
+  Training_Metrics_M2
+  Training_Metrics_M3
+  Training_Metrics_FWL
+  Training_Metrics_M4
+  
+  Out_Sample_Metrics_M1
+  Out_Sample_Metrics_M2
+  Out_Sample_Metrics_M3
+  Out_Sample_Metrics_FWL
+  Out_Sample_Metrics_M4
   
   #### Sexto modelo = Modelo 5 y se agregan interacciones entre sexo y educacion y tipo de trabajador #####
   #### Séptimo modelo = Modelo 6 y se agregan polinomios #####
