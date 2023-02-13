@@ -376,6 +376,11 @@
   summary(reg1)
   
   stargazer(reg1,type="text")
+  
+  #Para obtener el código de la tabla en latex
+  stargazer(reg1,
+            keep.stat="n",digits=2, single.row=FALSE,
+            intercept.bottom=FALSE)
 
   ### Bootstrap
   
