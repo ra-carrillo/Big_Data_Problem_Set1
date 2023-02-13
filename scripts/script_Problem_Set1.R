@@ -169,7 +169,7 @@
   
   summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
   summary(geih2018$Labor.Income.DANE ) # Variable construida No contamos con NAs
-
+  
   #Visualizar cuantas observaciones tienen ingresos iguales a 0
   Zeros <- geih2018 %>% 
     filter(Labor.Income.DANE == 0) # 323 observaciones cuentan con ingresos igual a 0
