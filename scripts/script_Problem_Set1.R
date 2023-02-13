@@ -320,7 +320,7 @@
     scale_y_continuous(labels = scales::comma) +
     coord_cartesian(ylim = ylim1*1.05) +
     scale_fill_brewer(palette="Dark2")+
-  labs(x='Edad', y='Salario por hora')
+  labs(x='Edad', y='Salario mensual')
   
   #### Si se toma el ingreso laboral mensual, ya se empieza a apreciar la brecha salarial
   
@@ -336,9 +336,10 @@
     ) + 
     geom_point() +
     scale_y_continuous(labels = scales::comma) +
-    #coord_cartesian(ylim = ylim1*1.05) +
-    theme_minimal()
-    
+    coord_cartesian(ylim = ylim1*1.05) +
+    theme_minimal()+
+    labs(x='Edad', y='Salario por hora')
+  
   ### Ingreso laboral mensual 
   
   db_geih2018 %>% 
