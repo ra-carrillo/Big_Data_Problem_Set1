@@ -357,7 +357,7 @@
   # Se ve mas clara la relacion cuadratica que queremos encontrar
   
   
-  #---4. Regresión1: Profile Age-Wage 
+  #---4. Regresión 1: Age-Wage profile
   
   ### Creacion de la variables necesarias para correr el modelo
   
@@ -368,7 +368,7 @@
       Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE) # Log del salario por hora
     )
   
- ### Se corre el modelo por MCO
+ ### Modelo de Regresión 1: Estimador MCO
   
   reg1 <- lm(Log.Hourly.Wage ~ age + age2,
              data = db_geih2018) 
