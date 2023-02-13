@@ -346,9 +346,6 @@
  Model_Data$Female
  
  table(Model_Data$Female)
- 
- 
- 
 
  
  
@@ -435,8 +432,6 @@
   
   
   #---4. Regresión1: Profile Age-Wage ###############################################
-  
- 
   
  ### Regresión 1: Estimación por MCO
   
@@ -558,46 +553,21 @@
             intercept.bottom=TRUE,
             df = FALSE
   )
+  #---5. Regresión 2: The gender earnings GAP + controles
+  reg2 <- lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt + Max.Educ.Level, data = Model_Data)
   
+  summary(reg2)
   
-#AQUI VOY
+  stargazer(reg2,type="text")
   
-  db_geih2018 <- db_geih2018 %>% 
-    mutate(
-      Total_horas_trabajadas=totalHoursWorked,
-      Est=estrato1) 
+  #Para obtener el código de la tabla en latex
   
-
+  stargazer(reg2, header=FALSE,
+            digits=2, single.row=FALSE,
+            intercept.bottom=TRUE,
+            df = FALSE
+  )
   
-  #Niveles socio-economicos
-  db_geih2018$Est1 <- ifelse(db_geih2018$estrato1== 1, 1, 0) 
-  db_geih2018$Est1[db_geih2018$estrato1 == "."] <- NA
-  
-  
-  
-  
-  require('fastDummies')
-  db_geih2018 <- dummy_cols(db_geih2018, select_columns = estrato1)
-  
-  db_geih2018$N_bajo <ifelse(db_geih2018$estrato1== 1, 1, 0,ifelse(db_geih2018$estrato1== 2, 1, 0))
-        
-                                                      
-  dataf$Disc_B <- ifelse(dataf$discipline == 'B', 1, 0)
-  
-  estrato1<-db_geih2018$estrato1
-  Estrato<- ifelse(estrato1 %in% c(1, 2), 1, ifelse(estrato1%in% c(3, 4), 2, ifelse(estrato1%in% c(5, 6), 3, NA)))
-  
-  db_geih2018$Estrato<- factor(db_geih2018$Estrato, levels=c(1,2,3,4,5,6), labels=c("N", "Mujer"))
-  table(db_geih2018$estrato1)
-  table(db_geih2018$Estrato)
-  
-  mutate(Estrato=estrato( 
-    estrato<- ifelse(estrato1 %in% c(1, 2), 1, ifelse(estrato1%in% c(3, 4), 2, ifelse(estrato1%in% c(5, 6), 3, NA)))))
-  
-  variable <-db_geih2018$estrato1
-  nse <- cut(variable, breaks = c(2, 4, 6))
-  
-  table(db_geih2018$nse)
   
   
   
