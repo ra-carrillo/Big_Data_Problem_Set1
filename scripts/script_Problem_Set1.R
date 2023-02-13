@@ -370,9 +370,17 @@
              data = db_geih2018) 
   
   summary(reg1)
-  
   stargazer(reg1,type="text")
+  summary(db_geih2018$Log.Hourly.Wage)
+  #Para obtener el código de la tabla en latex
 
+  stargazer(reg1, header=FALSE,
+            digits=2, single.row=FALSE,
+            intercept.bottom=TRUE,
+            df = FALSE
+            )
+  
+  
   ### Bootstrap
   
   sample_coef_intercept <- NULL
