@@ -735,8 +735,187 @@
   intervalo_men <- quantile(boot_men$t, c(0.025, 0.975))
   intervalo_men
 
-  
 
+  #Gráfica para las mujeres
+  
+  Age_fem<-function(Model_Data2,index){
+    
+    # Obtener coeficientes
+    coefs<-lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt + Fem_Age + Fem_Age2 +
+                Formal + secundaria + media + superior+ Tothour.worked,Model_Data2, subset = index)$coefficients
+    
+    # Coeficientes en escalares 
+    b0<-coefs[1]
+    b1<-coefs[2] 
+    b2<-coefs[3]
+    b3<-coefs[4]
+    b4<-coefs[5] 
+    b5<-coefs[6] 
+    b6<-coefs[7]
+    b7<-coefs[8] 
+    b8<-coefs[9]
+    b9<-coefs[10]
+    b10<-coefs[11]  
+    
+    #Edad Máxima mujeres
+    beta_age_fem<- ((b2+b4))
+    
+    
+    return(beta_age_fem)
+    
+  }
+  
+  Age_fem(Model_Data2,1:nrow(Model_Data2))
+  
+  boot_age_fem <- boot(Model_Data2, Age_fem, R = 1000)
+  boot_age_fem
+  coef_ed_fem <- boot_age_fem$t0
+  se_ed_fem <- apply(boot_age_fem$t,2,sd)
+  
+  
+  Age2_fem<-function(Model_Data2,index){
+    
+    #Obtener coeficientes
+    coefs<-lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt + Fem_Age + Fem_Age2 +
+                Formal + secundaria + media + superior+ Tothour.worked,Model_Data2, subset = index)$coefficients
+    
+    #Coeficientes en escalares 
+    b0<-coefs[1]
+    b1<-coefs[2] 
+    b2<-coefs[3]
+    b3<-coefs[4]
+    b4<-coefs[5] 
+    b5<-coefs[6] 
+    b6<-coefs[7]
+    b7<-coefs[8] 
+    b8<-coefs[9]
+    b9<-coefs[10]
+    b10<-coefs[11] 
+    
+    # Edad máxima mujeres
+    beta_age2_fem <- (b3+b5)
+    return(beta_age2_fem )
+  }
+  
+  Age2_fem(Model_Data2,1:nrow(Model_Data2))
+  
+  boot_age2_fem <- boot(Model_Data2, Age2_fem, R = 1000)
+  boot_age2_fem
+  coef_ed2_fem <- boot_age2_fem$t0
+  se_ed2_fem <- apply(boot_age2_fem$t,2,sd)
+  
+  #-------------------------------------------------------------------------------
+  #Gráfica para los hombres
+  age_men<-function(Model_Data2,index){
+    
+    # Obtener coeficientes
+    coefs<-lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt + Fem_Age + Fem_Age2 +
+                Formal + secundaria + media + superior+ Tothour.worked,Model_Data2, subset = index)$coefficients
+    
+    # Colocar coeficientes en escalares 
+    b0<-coefs[1]
+    b1<-coefs[2] 
+    b2<-coefs[3]
+    b3<-coefs[4]
+    b4<-coefs[5] 
+    b5<-coefs[6] 
+    b6<-coefs[7]
+    b7<-coefs[8] 
+    b8<-coefs[9]
+    b9<-coefs[10]
+    b10<-coefs[11]
+    
+    # Edad máxima de los hombres
+    beta_age_men<- ((b2))
+    
+    
+    return(beta_age_men)
+    
+  }
+  
+  age_men(Model_Data2,1:nrow(Model_Data2))
+  
+  boot_age_men <- boot(Model_Data2, age_men, R = 1000)
+  boot_age_men
+  coef_ed_men <- boot_age_men$t0
+  se_ed_men<- apply(boot_age_men$t,2,sd)
+  
+  
+  age2_men<-function(Model_Data2,index){
+    
+    # Obtener coeficientes
+    coefs<-lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt + Fem_Age + Fem_Age2 +
+                Formal + secundaria + media + superior+ Tothour.worked,Model_Data2, subset = index)$coefficients
+    
+    # Colocar coeficientes en escalares 
+    b0<-coefs[1]
+    b1<-coefs[2] 
+    b2<-coefs[3]
+    b3<-coefs[4]
+    b4<-coefs[5] 
+    b5<-coefs[6] 
+    b6<-coefs[7]
+    b7<-coefs[8] 
+    b8<-coefs[9]
+    b9<-coefs[10]
+    b10<-coefs[11]
+    
+    # Calcular edad pico para mujeres
+    beta_age2_men <- (b3)
+    
+    
+    return(beta_age2_men)
+    
+  }
+  
+  age2_men(Model_Data2,1:nrow(Model_Data2))
+  
+  boot_age2_men <- boot(Model_Data2, age2_men, R = 1000)
+  boot_age2_men
+  coef_ed2_men <- boot_age2_men$t0
+  se_ed2_men <- apply(boot_age2_men$t,2,sd)
+  
+  #------------------------------------------------------------------------------
+  # Dataframe para las x e y
+  
+  x <- seq(18, 94, length.out = 100)
+  
+  
+  y_fem <- 12.33 + coef_ed_fem * x + coef_ed2_fem * x^2
+  y_fem_i <- 12.19 + (coef_ed_fem-1.96*se_ed_fem) * x + (coef_ed2_fem-1.96*se_ed2_fem) * x^2
+  y_fem_s <- 12.47 + (coef_ed_fem+1.96*se_ed_fem) * x + (coef_ed2_fem+1.96*se_ed2_fem) * x^2
+  
+  
+  y_men <- coef_ed_men * x + coef_ed2_men * x^2
+  y_men_i <- (coef_ed_men-1.96*se_ed_men) * x + (coef_ed2_men-1.96*se_ed2_men) * x^2
+  y_men_s <- (coef_ed_men+1.96*se_ed_men) * x + (coef_ed2_men+1.96*se_ed2_men) * x^2
+  
+  
+  df <- data.frame(x, y_fem, y_fem_i, y_fem_s,y_men,y_men_i,y_men_s)
+  
+  # Grafico de la función para las mujeres 738
+  
+  ggplot(df, aes(x = x, y = y_fem)) +
+    geom_line(aes(color = "Estimado"), size = 1) +
+    geom_line(aes(x = x, y = y_fem_i, color = "Intervalo inferior"), linetype = "dotted", size = 1) +
+    geom_line(aes(x = x, y = y_fem_s, color = "Intervalo superior"), linetype = "dotted", size = 1) +
+    scale_color_manual(name = "", values = c("Estimado" = "green3", "Intervalo inferior" = "red", "Intervalo superior" = "red")) +
+    labs(x = "Edad", y = "Log(Salario por hora)") +
+    theme_classic() +
+    scale_x_continuous(limits = c(18, 94)) +
+    geom_vline(xintercept = 51, linetype = "dotted") +
+    theme(legend.position = "bottom")
+  
+  ggplot(df, aes(x = x, y = y_men)) +
+    geom_line(aes(color = "Estimado"), size = 1) +
+    geom_line(aes(x = x, y = y_men_i, color = "Intervalo inferior"), linetype = "dotted", size = 1) +
+    geom_line(aes(x = x, y = y_men_s, color = "Intervalo superior"), linetype = "dotted", size = 1) +
+    scale_color_manual(name = "", values = c("Estimado" = "green3", "Intervalo inferior" = "red", "Intervalo superior" = "red")) +
+    labs(x = "Edad", y = "Log(Salario por hora)") +
+    theme_classic() +
+    scale_x_continuous(limits = c(18, 94)) +
+    geom_vline(xintercept = 54, linetype = "dotted") +
+    theme(legend.position = "bottom")
   
   
   #---6 Predicting Earnings ############################################################
