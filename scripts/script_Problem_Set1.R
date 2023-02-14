@@ -33,7 +33,7 @@
 
   ## llamar la librería pacman: contiene la función p_load()
   require(pacman)
-
+  require('fastDummies')
   ## El comando "p_load" permite instalar/cargar las librerías que se enlistan:
   p_load(tidyverse, # contiene las librerías ggplot, dplyr...
          rvest, # web-scraping
@@ -194,7 +194,6 @@
       )
     )
 
-  
   summary(geih2018$Labor.Income.Test) 
   summary(geih2018$y_total_m) # Variable base datos (Incluye NAs)
 
@@ -273,9 +272,90 @@
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         #inglab, w, # Las que yo borraria
          formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
          )
+ 
+
+ 
+ #Niveles socio-economicos
+
+ db_geih2018 <- dummy_cols(db_geih2018, select_columns = c("Est"))
+ 
+ ### Creacion de la variables necesarias para correr el modelo
+ 
+ db_geih2018 <- db_geih2018 %>% 
+   mutate(
+     age2 = age*age, # Edad al cuadrado
+     Log.Hourly.Wage = log(Hourly.Wage),
+     Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE), # Log del salario por hora
+     Log.Month.Wage = log(Labor.Income))  # Log del salario mensual
+
+ ##### Pre-procesamiento de la base y ED#####
+ 
+ Model_Data <- db_geih2018 %>% 
+   select("Class" = clase, "Strata" = estrato1, "Age" = age, 
+          "Age_Sqrt"= age2, "Sex" = sex, 
+          "Max.Educ.Level" = maxEducLevel, 
+          Hourly.Wage, Hourly.Wage.DANE, 
+          "Formal" = formal, relab, "Job.Type"= oficio, "Tothour.worked"=totalHoursWorked, cotPension, regSalud,
+          sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
+   mutate(
+     Worker.Type  = case_when(
+       relab == 1 ~ "Private Employee",
+       relab == 2 ~ "Goverment Employee",
+       relab == 3 ~ "Household Employee",
+       relab == 4 ~ "Self Employed",
+       relab == 5 ~ "Employer",
+       relab == 6 ~ "No Rem Family Employee",
+       relab == 7 ~ "No Rem Private Employee",
+       relab == 8 ~ "Jornaler",
+       relab == 9 ~ "Other"
+     ),
+     Firm.Size  = case_when(
+       sizeFirm == 1 ~ "Self Employed",
+       sizeFirm == 2 ~ "2-5 Workers",
+       sizeFirm == 3 ~ "6-10 Workers",
+       sizeFirm == 4 ~ "11-50 Workers",
+       sizeFirm == 5 ~ ">50 Workers"),
+     HealthCare.System = case_when(
+       regSalud == 1 ~ "Contributory",
+       regSalud == 2 ~ "Special",  
+       regSalud == 3 ~ "Subsidized",
+       TRUE ~ "NA"
+     ),
+     Job.Type = as.character(Job.Type),
+     Max.Educ.Level = as.character(Max.Educ.Level),
+     Class = as.character(Class),
+     Strata = as.character(Strata)
+   ) %>% 
+   na.omit()
+ 
+ summary(Model_Data)
+ 
+ #Creación variable mujer=1 y hombre=0
+ table(Model_Data$Sex)
+ 
+ Model_Data <- Model_Data %>% 
+   mutate(
+     Female=Female<-ifelse(Sex==0,1,0))  
+ 
+ table(Model_Data$Female)
+ Model_Data$Female
+ 
+ Model_Data$Female <- factor(Model_Data$Female, levels=c(0, 1), labels=c("Hombre", "Mujer"))
+ Model_Data$Female
+ 
+ table(Model_Data$Female)
+ 
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+ #AQUI VOY
  
   #---3. Estadística descriptiva ##########################################################################################
     
@@ -356,34 +436,18 @@
   
   #---4. Regresión1: Profile Age-Wage ###############################################
   
-  ### Creacion de la variables necesarias para correr el modelo
+ 
   
-  db_geih2018 <- db_geih2018 %>% 
-    mutate(
-      age2 = age*age, # Edad al cuadrado
-      Log.Hourly.Wage = log(Hourly.Wage),
-      Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE), # Log del salario por hora
-      Log.Month.Wage = log(Labor.Income))  # Log del salario mensual
-
-  View(db_geih2018$Labor.Income)
  ### Regresión 1: Estimación por MCO
   
-  reg0 <- lm(Log.Month.Wage  ~ age + age2,
-             data = db_geih2018)
-  summary(reg0)
-  
-  stargazer(reg0,type="text")
-  
-  summary(db_geih2018$Log.Month.Wage)
-  
-  reg1 <- lm(Log.Hourly.Wage ~ age + age2,
-             data = db_geih2018) 
+  reg1 <- lm(Log.Hourly.Wage  ~ Age + Age_Sqrt,
+             data = Model_Data) 
   
   summary(reg1)
   
   stargazer(reg1,type="text")
   
-  summary(db_geih2018$Log.Hourly.Wage)
+  summary(Model_Data$Log.Hourly.Wage)
   
   #Para obtener el código de la tabla en latex
 
@@ -404,54 +468,55 @@
   b2<-coefs[3]#coeficiente asociado a la edad al cuadrado
 
   # Estimar la elasticidad en el valor de la media 
-  edad_bar<-mean(db_geih2018$age)
+  Age_bar<-mean(Model_Data$Age)
   
   #Obtener la elasticidad del salario:
-  elastpt<-b1+2*b2*edad_bar
+  elastpt<-b1+2*b2*Age_bar
   
   elastpt
   
   eta_mod2_fn<-function(data,index,
-                        age_bar=mean(db_geih2018$age)){
+                        Age_bar=mean(Model_Data$Age)){
     
     #Obtener los coeficientes
-    coefs<-lm(Log.Hourly.Wage ~ age + age2,data, subset = index)$coefficients
+    coefs<-lm(Log.Hourly.Wage  ~ Age + Age_Sqrt,data, subset = index)$coefficients
     
     #Poner los coeficientes en escalares 
     b1<-coefs[2]
     b2<-coefs[3] 
 
     #Calcular la elasticidad del salario
-    elastpt<-b1+2*b2*age_bar
+    elastpt<-b1+2*b2*Age_bar
     
     #Devolver la elasticidad del salario
     return(elastpt)
   }
   
-  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018))  
+  eta_mod2_fn(Model_Data,1:nrow(Model_Data))  
   
   #Evaluar en diferentes puntos de la distribución de edad
-  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018),age_bar=-1) 
+  eta_mod2_fn(Model_Data,1:nrow(Model_Data),Age_bar=-1) 
   
-  eta_mod2_fn(db_geih2018,1:nrow(db_geih2018),age_bar=2) 
+  eta_mod2_fn(Model_Data,1:nrow(Model_Data),Age_bar=2) 
   
   #Obtener el error estándar de nuestra elasticidad
-  results <- boot(db_geih2018, eta_mod2_fn,R=1000)
+  results <- boot(Model_Data, eta_mod2_fn,R=1000)
   results
   
   # Bootstrap 
   eta_fn<-function(data,index){
-    coef(lm(Log.Hourly.Wage ~ age + age2, data = db_geih2018, subset = index)) 
+    coef(lm(Log.Hourly.Wage  ~ Age + Age_Sqrt, data = Model_Data, subset = index)) 
   } 
   
-  eta_fn(db_geih2018,1:nrow(db_geih2018))
+  eta_fn(Model_Data,1:nrow(Model_Data))
   
-  boot <- boot(db_geih2018, eta_fn, R = 1000)
+  boot <- boot(Model_Data, eta_fn, R = 1000)
   coef_boot <- boot$t0
   SE <- apply(boot$t,2,sd)
   boot
   coef_boot
   
+  summary(Model_Data$Age)
   # Matriz con las X y las Y
   
   x <- seq(18, 94, length.out = 100)
@@ -473,81 +538,68 @@
     labs(x = "Edad", y = "Log(Salario por hora)") +
     theme_classic() +
     scale_x_continuous(limits = c(18, 94)) +
-    geom_vline(xintercept = 39, linetype = "dotted") +
+    geom_vline(xintercept = 50, linetype = "dotted") +
     theme(legend.position = "bottom")
   
   ggsave(graph, filename = "C:/Users/andre/OneDrive/Github/Repositorios/Big_Data_Problem_Set1/views/Rplot4.png", height = 5, width = 6)
   
-  
 
-  #Revisar
+  #---5. Regresión 2: The gender earnings GAP 
+  reg2 <- lm(Log.Hourly.Wage ~ Female, data = Model_Data)
   
-  sample_coef_intercept <- NULL
-  sample_coef_x1 <- NULL
-  sample_erstd_x1 <- NULL
-  sample_coef_x2 <- NULL
-  sample_erstd_x2 <- NULL
-  
-  for (i in 1:1000) {
-    sample_d = db_geih2018[sample(1:nrow(db_geih2018), 0.3*nrow(db_geih2018), replace = TRUE), ]
-    reg_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
-    sample_coef_intercept <-
-      c(sample_coef_intercept, reg_boots$coefficients[1])
-    
-    sample_coef_x1 <-
-      c(sample_coef_x1, reg_boots$coefficients[2])
-    
-    sample_erstd_x1 <-
-      c(sample_erstd_x1, coef(summary(reg_boots))[2, 2])
-    
-    sample_coef_x2 <-
-      c(sample_coef_x2, reg_boots$coefficients[3])
-    
-    sample_erstd_x2 <-
-      c(sample_erstd_x2, coef(summary(reg_boots))[3, 2])
-  }
-  
-  #Obtener tabla que compara los diferentes modelos
-  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
-                 sample_coef_x2, sample_erstd_x2)
-  
-  means.boots = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
-                  mean(sample_coef_x2))
-  erstd.boots = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
-  knitr::kable(round(
-    cbind(
-      sample = coef(summary(reg1))[, c(1,2)],
-      bootstrap = means.boots,
-      erstdBoots = erstd.boots),4), 
-    "simple", caption = "Coefficients in different models")
-  
-
-  ### Intervalos de confianza
-  
-  confint(reg1)
-  a <-
-    cbind(
-      quantile(sample_coef_intercept, prob = 0.025),
-      quantile(sample_coef_intercept, prob = 0.975))
-  b <-
-    cbind(quantile(sample_coef_x1, prob = 0.025),
-          quantile(sample_coef_x1, prob = 0.975))
-  c <-
-    cbind(quantile(sample_coef_x2, prob = 0.025),
-          quantile(sample_coef_x2, prob = 0.975))
-  d <-
-    round(cbind(
-      sample = confint(reg1),
-      boot = rbind(a, b, c)), 4)
-  colnames(d) <- c("2.5 %", "97.5 %",
-                   "2.5 %", "97.5 %")
-  
-  #---5. Regresión2: The gender earnings GAP ########################################################################
-
-  
-  reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
   summary(reg2)
+  
   stargazer(reg2,type="text")
+  
+  #Para obtener el código de la tabla en latex
+  
+  stargazer(reg2, header=FALSE,
+            digits=2, single.row=FALSE,
+            intercept.bottom=TRUE,
+            df = FALSE
+  )
+  
+  
+#AQUI VOY
+  
+  db_geih2018 <- db_geih2018 %>% 
+    mutate(
+      Total_horas_trabajadas=totalHoursWorked,
+      Est=estrato1) 
+  
+
+  
+  #Niveles socio-economicos
+  db_geih2018$Est1 <- ifelse(db_geih2018$estrato1== 1, 1, 0) 
+  db_geih2018$Est1[db_geih2018$estrato1 == "."] <- NA
+  
+  
+  
+  
+  require('fastDummies')
+  db_geih2018 <- dummy_cols(db_geih2018, select_columns = estrato1)
+  
+  db_geih2018$N_bajo <ifelse(db_geih2018$estrato1== 1, 1, 0,ifelse(db_geih2018$estrato1== 2, 1, 0))
+        
+                                                      
+  dataf$Disc_B <- ifelse(dataf$discipline == 'B', 1, 0)
+  
+  estrato1<-db_geih2018$estrato1
+  Estrato<- ifelse(estrato1 %in% c(1, 2), 1, ifelse(estrato1%in% c(3, 4), 2, ifelse(estrato1%in% c(5, 6), 3, NA)))
+  
+  db_geih2018$Estrato<- factor(db_geih2018$Estrato, levels=c(1,2,3,4,5,6), labels=c("N", "Mujer"))
+  table(db_geih2018$estrato1)
+  table(db_geih2018$Estrato)
+  
+  mutate(Estrato=estrato( 
+    estrato<- ifelse(estrato1 %in% c(1, 2), 1, ifelse(estrato1%in% c(3, 4), 2, ifelse(estrato1%in% c(5, 6), 3, NA)))))
+  
+  variable <-db_geih2018$estrato1
+  nse <- cut(variable, breaks = c(2, 4, 6))
+  
+  table(db_geih2018$nse)
+  
+  
   
   ## Bootstrap por género
   Tabla_men <- db_geih2018 %>% filter(sex == 1)
