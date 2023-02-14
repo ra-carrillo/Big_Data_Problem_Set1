@@ -35,14 +35,14 @@
   require(pacman)
   require('fastDummies')
   ## El comando "p_load" permite instalar/cargar las librerías que se enlistan:
-  p_load(tidyverse, # contiene las librerías ggplot, dplyr...
-         rvest, # web-scraping
-         stargazer,
-         ggplot2, 
-         hrbrthemes,
-         tidymodels,
-         fastDummies, # Tiene las herramientas para crear modelos de Machine learning
-         boot, bootstrap) 
+  p_load("tidyverse", # contiene las librerías ggplot, dplyr...
+         "rvest", # web-scraping
+         "stargazer",
+         "ggplot2", 
+         "hrbrthemes",
+         "tidymodels",
+         "fastDummies", # Tiene las herramientas para crear modelos de Machine learning
+         "boot", "bootstrap","rio", "tidyr") 
 
 #---1. Descargar base de datos de la GEIH 2018-Bogotá usando web-scraping ###################################################
   
@@ -265,6 +265,28 @@
  # Trabajaria con Hourly.Wage y Hourly.Wage.DANE para las regresiones
  
   ##### Seleccionar las variables con las que se trabajará #####
+ 
+ 
+ #Construcción variables nivel educativo
+ # - Primaria
+ 
+ geih2018$primaria <- ifelse(geih2018$p6210 == 3, 1, 0)
+ geih2018$primaria[geih2018$p6210 == "."] <- NA
+ 
+ # - Secundaria
+ 
+ geih2018$secundaria <- ifelse(geih2018$p6210 == 4, 1, 0)
+ geih2018$secundaria[geih2018$p6210 == "."] <- NA
+ 
+ # - Media
+ 
+ geih2018$media <- ifelse(geih2018$p6210 == 5, 1, 0)
+ geih2018$media[geih2018$p6210 == "."] <- NA
+ 
+ # - Superior
+ 
+ geih2018$superior <- ifelse(geih2018$p6210 == 6, 1, 0)
+ geih2018$superior[geih2018$p6210 == "."] <- NA
   
   db_geih2018 <- geih2018 %>% 
   select(directorio, secuencia_p, orden, # Variables de ID
@@ -272,10 +294,8 @@
          Labor.Income.DANE, "Labor.Income" = y_total_m_imputada,
          hoursWorkUsual, hoursWorkActualSecondJob, totalHoursWorked, # Hours worked
          Hourly.Wage, Hourly.Wage.DANE, # Nuestras Y
-         formal, relab, regSalud, cotPension, sizeFirm, oficio # Variables laborales relevantes
-         )
- 
-
+         formal, relab, regSalud, cotPension, sizeFirm, oficio,# Variables laborales relevantes
+         primaria,secundaria,media,superior)
  
  #Niveles socio-economicos
 
@@ -290,15 +310,14 @@
      Log.Hourly.Wage.DANE = log (Hourly.Wage.DANE), # Log del salario por hora
      Log.Month.Wage = log(Labor.Income))  # Log del salario mensual
 
- ##### Pre-procesamiento de la base y ED#####
- 
  Model_Data <- db_geih2018 %>% 
    select("Class" = clase, "Strata" = estrato1, "Age" = age, 
           "Age_Sqrt"= age2, "Sex" = sex, 
-          "Max.Educ.Level" = maxEducLevel, 
+          "Max.Educ.Level" = maxEducLevel,
           Hourly.Wage, Hourly.Wage.DANE, 
           "Formal" = formal, relab, "Job.Type"= oficio, "Tothour.worked"=totalHoursWorked, cotPension, regSalud,
-          sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
+          sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE,
+          primaria,secundaria,media,superior) %>%
    mutate(
      Worker.Type  = case_when(
        relab == 1 ~ "Private Employee",
@@ -347,11 +366,7 @@
  
  table(Model_Data$Female)
 
- 
- 
- 
- 
- 
+
  #AQUI VOY
  
   #---3. Estadística descriptiva ##########################################################################################
@@ -554,202 +569,77 @@
             df = FALSE
   )
   #---5. Regresión 2: The gender earnings GAP + controles
-  reg2 <- lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt + Max.Educ.Level, data = Model_Data)
+  reg3 <- lm(Log.Hourly.Wage ~ Female + Age + Age_Sqrt +
+               Formal + secundaria + media + superior+ Tothour.worked, data = Model_Data)
   
-  summary(reg2)
+  summary(reg3)
   
-  stargazer(reg2,type="text")
+  stargazer(reg2 , reg3,type="text")
   
   #Para obtener el código de la tabla en latex
   
-  stargazer(reg2, header=FALSE,
+  stargazer(reg2,reg3, header=FALSE,
             digits=2, single.row=FALSE,
             intercept.bottom=TRUE,
             df = FALSE
   )
   
+  Model_Data2<-Model_Data%>%mutate(Log.Hourly.Wage=as.numeric(Log.Hourly.Wage),
+                                   Female=as.numeric(Female),
+                                   Age=as.numeric(Age),
+                                   Age_Sqrt=as.numeric(Age_Sqrt),
+                                   Formal=as.numeric(Formal),
+                                   secundaria=as.numeric(secundaria),
+                                   media=as.numeric(media),
+                                   superior=as.numeric(superior),
+                                   Tothour.worked=as.numeric(Tothour.worked))
+  
+  #Ahora vamos a estimar la brecha a partir del teorema de FWl
+  
+  # Primero estimar el y residual
+  Model_Data2<-Model_Data2%>% 
+    mutate(loghw_ResidF=lm(Log.Hourly.Wage ~ Age,Model_Data2)$residuals)
+  
+  Log.Hourly.Wage ~ Age + Age_Sqrt + superior + Tothour.worked
+  
+  # 2) paso 2
+  Model_Data<-Model_Data%>% 
+    mutate(fem_ResidF=lm(Female  ~  Age ,Model_Data)$residuals) 
+  
+  + Age_Sqrt +
+    Formal + Strata + secundaria + media + superior + Tothour.worked
+  
+  # 3) Regress the residuals from step 2 on the residuals from step 1
+  
+  reg2<-lm(y_Resid~x_Resid,GEIH)
+  stargazer(mod2,reg2) 
   
   
-  
-  ## Bootstrap por género
-  Tabla_men <- db_geih2018 %>% filter(sex == 1)
-  Tabla_fem <- db_geih2018 %>% filter(sex == 0)
-  
-  ## men
-  Tabla_men$age2 <- Tabla_men$age*Tabla_men$age
-  reg_men <- lm(Log.Hourly.Wage ~ age + age2, data = Tabla_men)
-  sample_coef_intercept <- NULL
-  sample_coef_x1 <- NULL
-  sample_erstd_x1 <- NULL
-  sample_coef_x2<- NULL
-  sample_erstd_x2 <- NULL
-  for (i in 1:1000) {
-    sample_d = Tabla_men[sample(1:nrow(Tabla_men), 0.3*nrow(Tabla_men), replace = TRUE), ]
-    
-    model_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
-    
-    sample_coef_intercept <-
-      c(sample_coef_intercept, model_boots$coefficients[1])
-    
-    sample_coef_x1 <-
-      c(sample_coef_x1, model_boots$coefficients[2])
-    
-    sample_erstd_x1 <-
-      c(sample_erstd_x1, coef(summary(model_boots))[2, 2])
-    
-    sample_coef_x2 <-
-      c(sample_coef_x2, model_boots$coefficients[3])
-    
-    sample_erstd_x2 <-
-      c(sample_erstd_x2, coef(summary(model_boots))[3, 2])
+  # - ii) FWL con Bootstrap
+  # - crear la funcion de FWL
+  fwl_in_action<-function(Model_Data2,index) {
+    #FWL is the regression of residuals on residuals
+    Model_Data2$y_resid<-resid(lm(Log.Hourly.Wage ~ Age + Age_Sqrt + superior + Tothour.worked, data=Model_Data2, subset=index))
+    Model_Data2$x_resid<-resid(lm(Female ~ Age + Age_Sqrt + superior + Tothour.worked, data=Model_Data2, subset=index))
+    coef_interest<-coef(lm(y_resid~x_resid, data=Model_Data2, subset=index))
+    coef_interest
   }
-  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
-                 sample_coef_x2, sample_erstd_x2)
   
-  # Combinar los resultados en una tabla 
-  means.boot = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
-                 mean(sample_coef_x2))
-  erstd.boot = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
-  knitr::kable(round(
-    cbind(
-      sample = coef(summary(reg_men))[, c(1,2)],
-      bootstrap = means.boot,
-      erstdBoots = erstd.boot),4), 
-    "simple", caption = "Coefficients in different models")
+  # - verificar que funciona
+  lm(Log.Hourly.Wage ~ Female +Age + Age_Sqrt + superior + Tothour.worked ,Model_Data2)
+  fwl_in_action(Model_Data2,1:nrow(Model_Data2))
   
-  # Intervalos de confianza
-  
-  confint(reg_men)
-  a <-
-    cbind(
-      quantile(sample_coef_intercept, prob = 0.025),
-      quantile(sample_coef_intercept, prob = 0.975))
-  b <-
-    cbind(quantile(sample_coef_x1, prob = 0.025),
-          quantile(sample_coef_x1, prob = 0.975))
-  c <-
-    cbind(quantile(sample_coef_x2, prob = 0.025),
-          quantile(sample_coef_x2, prob = 0.975))
-  d <-
-    round(cbind(
-      sample = confint(reg_men),
-      boot = rbind(a, b, c)), 4)
-  colnames(d) <- c("2.5 %", "97.5 %",
-                   "2.5 %", "97.5 %")
-  d
+  # - implemento Bootstrap
+  Boot_FWL <- boot(Model_Data2, fwl_in_action, R = 1000)
+  Boot_FWL
   
   
-  ## female
-  Tabla_fem$age2 <- Tabla_fem$age*Tabla_fem$age
-  reg_fem <- lm(Log.Hourly.Wage ~ age + age2, data = Tabla_fem)
-  sample_coef_intercept <- NULL
-  sample_coef_x1 <- NULL
-  sample_erstd_x1 <- NULL
-  sample_coef_x2<- NULL
-  sample_erstd_x2 <- NULL
-  for (i in 1:1000) {
-    sample_d = Tabla_fem[sample(1:nrow(Tabla_fem), 0.3*nrow(Tabla_fem), replace = TRUE), ]
-    
-    model_boots <- lm(Log.Hourly.Wage ~ age + age2, data = sample_d)
-    
-    sample_coef_intercept <-
-      c(sample_coef_intercept, model_boots$coefficients[1])
-    
-    sample_coef_x1 <-
-      c(sample_coef_x1, model_boots$coefficients[2])
-    
-    sample_erstd_x1 <-
-      c(sample_erstd_x1, coef(summary(model_boots))[2, 2])
-    
-    sample_coef_x2 <-
-      c(sample_coef_x2, model_boots$coefficients[3])
-    
-    sample_erstd_x2 <-
-      c(sample_erstd_x2, coef(summary(model_boots))[3, 2])
-  }
-  coefs <- rbind(sample_coef_intercept, sample_coef_x1, sample_erstd_x1, 
-                 sample_coef_x2, sample_erstd_x2)
-  
-  # Combinar los resultados en una tabla
-  means.boot = c(mean(sample_coef_intercept), mean(sample_coef_x1), 
-                 mean(sample_coef_x2))
-  erstd.boot = c(0,mean(sample_erstd_x1),mean(sample_erstd_x2))
-  knitr::kable(round(
-    cbind(
-      sample = coef(summary(reg_fem))[, c(1,2)],
-      bootstrap = means.boot,
-      erstdBoots = erstd.boot),4), 
-    "simple", caption = "Coefficients in different models")
   
   
-  # Intervalos de confianza 
-  confint(reg_fem)
-  a <-
-    cbind(
-      quantile(sample_coef_intercept, prob = 0.025),
-      quantile(sample_coef_intercept, prob = 0.975))
-  b <-
-    cbind(quantile(sample_coef_x1, prob = 0.025),
-          quantile(sample_coef_x1, prob = 0.975))
-  c <-
-    cbind(quantile(sample_coef_x2, prob = 0.025),
-          quantile(sample_coef_x2, prob = 0.975))
-  d <-
-    round(cbind(
-      sample = confint(reg_fem),
-      boot = rbind(a, b, c)), 4)
-  colnames(d) <- c("2.5 %", "97.5 %",
-                   "2.5 %", "97.5 %")
-  d
-  
-  reg2 <- lm(Log.Hourly.Wage ~ sex, data = db_geih2018) 
-  summary(reg2)
-  stargazer(reg2,type="text")
   
   #---6 Predicting Earnings ############################################################
   
-  
-  ##### Pre-procesamiento de la base y ED#####
-  
-  Model_Data <- db_geih2018 %>% 
-    select("Class" = clase, "Strata" = estrato1, "Age" = age, 
-           "Age_Sqrt"= age2, "Sex" = sex, 
-           "Max.Educ.Level" = maxEducLevel, 
-           Hourly.Wage, Hourly.Wage.DANE, 
-           "Formal" = formal, relab, "Job.Type"= oficio, cotPension, regSalud,
-           sizeFirm, Log.Hourly.Wage, Log.Hourly.Wage.DANE) %>% 
-    mutate(
-      Worker.Type  = case_when(
-        relab == 1 ~ "Private Employee",
-        relab == 2 ~ "Goverment Employee",
-        relab == 3 ~ "Household Employee",
-        relab == 4 ~ "Self Employed",
-        relab == 5 ~ "Employer",
-        relab == 6 ~ "No Rem Family Employee",
-        relab == 7 ~ "No Rem Private Employee",
-        relab == 8 ~ "Jornaler",
-        relab == 9 ~ "Other"
-      ),
-      Firm.Size  = case_when(
-        sizeFirm == 1 ~ "Self Employed",
-        sizeFirm == 2 ~ "2-5 Workers",
-        sizeFirm == 3 ~ "6-10 Workers",
-        sizeFirm == 4 ~ "11-50 Workers",
-        sizeFirm == 5 ~ ">50 Workers"),
-      HealthCare.System = case_when(
-          regSalud == 1 ~ "Contributory",
-          regSalud == 2 ~ "Special",  
-          regSalud == 3 ~ "Subsidized",
-            TRUE ~ "NA"
-      ),
-      Job.Type = as.character(Job.Type),
-      Max.Educ.Level = as.character(Max.Educ.Level),
-      Class = as.character(Class),
-      Strata = as.character(Strata)
-      ) %>% 
-    na.omit()
-  
-  summary(Model_Data)
+  #Revisar
   
   ###  Revisar distribución de la variable objetivo   #####  
   
