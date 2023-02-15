@@ -374,10 +374,10 @@
  table(Model_Data$Female)
 
 
- #AQUI VOY
+
  
   #---3. Estadística descriptiva ##########################################################################################
-    
+ 
   ##### Box plot Edad - Ingreso Laboral #####
   
   db_geih2018 %>% 
@@ -401,6 +401,7 @@
                  outlier.shape = NA) +
     scale_y_continuous(labels = scales::comma) +
     coord_cartesian(ylim = ylim1*1.05) +
+    labs(x = "Edad", y = "Salario por hora") +
     scale_fill_brewer(palette="Dark2")
   
   # No parecen haber diferencias en el salario por hora
@@ -417,6 +418,8 @@
                  outlier.shape = NA) +
     scale_y_continuous(labels = scales::comma) +
     coord_cartesian(ylim = ylim1*1.05) +
+    labs(x = "Edad", y = "Salario por mensual") +
+    labs(color='Sexo')+
     scale_fill_brewer(palette="Dark2")
   
   #### Si se toma el ingreso laboral mensual, ya se empieza a apreciar la brecha salarial
@@ -425,11 +428,11 @@
   
   ### Ingreso laboral por hora 
   
-  db_geih2018 %>% 
-    ggplot(aes(x=age, 
+  Model_Data2 %>% 
+    ggplot(aes(x=Age, 
                y = Hourly.Wage,
-               shape = sex,
-               color = sex)
+               shape = Sex,
+               color = Sex)
     ) + 
     geom_point() +
     scale_y_continuous(labels = scales::comma) +
@@ -438,7 +441,7 @@
   
   ### Ingreso laboral mensual 
   
-  db_geih2018 %>% 
+  Model_Data2 %>% 
     filter(Labor.Income <= 20000000) %>%  
     ggplot(aes(x=age, 
                y = Labor.Income,
