@@ -372,12 +372,20 @@
  Model_Data$Female
  
  table(Model_Data$Female)
-
-
-
+ descriptivas <- Model_Data[c("Class", "Strata", "Age", 
+                               "Sex","Hourly.Wage", 
+                               "Formal" , "Job.Type", "Tothour.worked","Worker.Type",
+                               "Firm.Size", "HealthCare.System","Log.Hourly.Wage",
+                               "primaria","secundaria","media","superior")]
  
-  #---3. Estadística descriptiva ##########################################################################################
- 
+  descriptivas_all <- data.frame(sapply(descriptivas, function(x) 
+    c(mean = mean(x), sd = sd(x))))
+  
+  stargazer(descriptivas_all, type = "latex",summary.stat = c("mean", "sd"))
+  
+  
+  #---3. Estadística descriptiva 
+  
   ##### Box plot Edad - Ingreso Laboral #####
   
   db_geih2018 %>% 
@@ -428,20 +436,20 @@
   
   ### Ingreso laboral por hora 
   
-  Model_Data2 %>% 
-    ggplot(aes(x=Age, 
+  db_geih2018 %>% 
+    ggplot(aes(x=age, 
                y = Hourly.Wage,
-               shape = Sex,
-               color = Sex)
+               shape = sex,
+               color = sex)
     ) + 
     geom_point() +
-    scale_y_continuous(labels = scales::comma) +
-    #coord_cartesian(ylim = ylim1*1.05) +
+    #scale_y_continuous(labels = scales::comma) +
+    coord_cartesian(ylim = ylim1*1.05) +
     theme_minimal()
   
   ### Ingreso laboral mensual 
   
-  Model_Data2 %>% 
+  db_geih2018 %>% 
     filter(Labor.Income <= 20000000) %>%  
     ggplot(aes(x=age, 
                y = Labor.Income,
