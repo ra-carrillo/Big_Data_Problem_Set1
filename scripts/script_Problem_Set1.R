@@ -875,7 +875,7 @@
   coef_ed2_men <- boot_age2_men$t0
   se_ed2_men <- apply(boot_age2_men$t,2,sd)
   
-  #------------------------------------------------------------------------------
+  
   # Dataframe para las x e y
   
   x <- seq(18, 94, length.out = 100)
